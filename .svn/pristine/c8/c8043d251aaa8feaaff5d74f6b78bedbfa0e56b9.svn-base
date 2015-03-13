@@ -1,0 +1,6 @@
+Classes in the default package are usued due to updates in the code.
+
+Controls:
+Use the Arrow keys to select an option on the Main Menu.
+Use the Enter key to precede with selection.
+Use the Space key to fire a bullet at Enemies. Bullets will fire the last direction the player was moving.

@@ -1,0 +1,104 @@
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+import javax.swing.JComponent;
+
+
+public class Digger extends JComponent{
+	private final int DIRT = 0;
+	private final int BARRIER = 1;
+	private final int CLEAR = 2;
+	
+	private double tilePositionX;
+	private double tilePositionY;
+	private BufferedImage sprite;
+	private Level level;
+	private double angularPosition;
+	private double size;
+	
+	private final int SCALE = 50;
+	
+	public Digger(Level level) {
+		// location on 20 x 20 board.
+		// temp variables.
+		this.tilePositionX = 3;
+		this.tilePositionY = 3;
+		this.size = 32;
+		this.angularPosition = 0;
+		
+		this.level = level;
+		
+		try {
+			this.sprite = ImageIO.read(new File("res/pacman.png"));
+		} catch (IOException e) {
+			System.out.println("Error: File not found.");
+			e.printStackTrace();
+			System.exit(0);
+		}
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g) {
+		Graphics2D g2 = (Graphics2D) g;
+		
+		g2.translate(this.tilePositionX * this.SCALE, this.tilePositionY * this.SCALE);
+		g2.rotate(this.angularPosition);
+		
+		g2.drawImage(this.sprite, 0, 0, null);
+		
+		g2.rotate(-this.angularPosition);
+		g2.translate(-this.tilePositionX * this.SCALE, -this.tilePositionY * this.SCALE);
+		
+	}
+	
+	/**
+	 * TODO Put here a description of what this method does.
+	 *
+	 * @param g2
+	 */
+	public void draw(Graphics2D g2) {
+		g2.translate(this.tilePositionX * this.SCALE, this.tilePositionY * this.SCALE);
+		g2.rotate(this.angularPosition);
+		
+		g2.drawImage(this.sprite, 0, 0, null);
+		
+		g2.rotate(-this.angularPosition);
+		g2.translate(-this.tilePositionX * this.SCALE, -this.tilePositionY * this.SCALE);
+	}
+	
+	/**
+	 * Moves the player object accordingly.
+	 *
+	 * @param direction a string indicating direction.
+	 */
+	public void move(String direction) {
+		int[][] currentPosition = this.level.getMap();
+		int roundedPositionX;
+		int roundedPositionY;
+		
+		if (direction.equals("left")) {
+			this.tilePositionX = this.tilePositionX - 0.25;
+			
+		}
+		if (direction.equals("right")) {
+			this.tilePositionX = this.tilePositionX + 0.25;
+		}
+		if (direction.equals("up")) {
+			this.tilePositionY = this.tilePositionY - 0.5;
+		}
+		if (direction.equals("down")) {
+			this.tilePositionY = this.tilePositionY + 0.5;
+		}
+		
+		roundedPositionX = (int) Math.round(this.tilePositionX);
+		roundedPositionY = (int) Math.round(this.tilePositionY);
+		
+		if (currentPosition[roundedPositionX][roundedPositionY] == this.DIRT) {
+			this.level.updateTile(roundedPositionX, roundedPositionY, this.CLEAR);
+		}
+	}
+}

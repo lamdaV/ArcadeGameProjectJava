@@ -1,0 +1,51 @@
+
+public class Coordinate {
+	private int x;
+	private int y;
+	
+	public Coordinate() {
+		this(0, 0);
+	}
+	
+	public Coordinate(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+	
+	public int getX() {
+		return this.x;
+	}
+	
+	public int getY() {
+		return this.y;
+	}
+	
+	public String toString() {
+		String result = "[" + this.x + "][" + this.y + "]";
+		return result;
+	}
+	
+	@Override
+	public boolean equals(Object check) {
+		if (check == null) {
+			return false;
+		}
+		if (check == this) {
+			return true;
+		}
+
+		if (!(check instanceof Coordinate)) {
+			return false;
+		}
+		
+		int checkX = ((Coordinate) check).getX();
+		int checkY = ((Coordinate) check).getY();
+		int thisX = this.getX();
+		int thisY = this.getY();
+		
+		if (thisX == checkX && thisY == checkY) {
+			return true;
+		}
+		return false;
+	}
+}

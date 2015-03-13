@@ -1,0 +1,27 @@
+
+/**
+ * A Runnable object that represents a basic enemy in the Digger game.
+ * 
+ * @author lamd. Created Feb 8, 2015.
+ */
+public class Nobbin extends Enemy {
+	
+	/**
+	 * Constructs a Nobbin with a specified level and target player.
+	 * 
+	 * @param level
+	 *            the specified level.
+	 * @param player
+	 *            the target player.
+	 */
+	public Nobbin(Level level, Digger player) {
+		super(level, player);
+	}
+
+	public void update() {
+		// Does nothing currently.
+	}
+
+	
+	
+}

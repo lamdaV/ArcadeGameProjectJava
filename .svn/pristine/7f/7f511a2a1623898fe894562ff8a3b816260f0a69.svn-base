@@ -1,0 +1,176 @@
+import java.awt.Graphics2D;
+import java.util.ArrayList;
+
+/**
+ * StateManager manages the various States of the game and assist in passing a
+ * consistent player object.
+ * 
+ * @author lamd. Created Feb 6, 2015.
+ */
+public class StateManager {
+	// Field Constants.
+	public final int MENUSTATE = 0; // Represents the MenuState's index in the
+										// states arraylist.
+	private final int LEVEL0 = 0; // Level 0
+	private final int LEVEL1 = 1; // Level 1
+	private final int LEVEL2 = 2; // Level 2
+	private final int LEVEL3 = 3; // Level 3
+
+	// Field Variables.
+	protected Digger player; // The player object that moves between the states.
+	protected Enemy enemy1;
+	protected Enemy enemy2;
+	protected Enemy enemy3;
+	protected Enemy enemy4;
+	protected Enemy enemy5;
+	protected Enemy enemy6;
+	private ArrayList<State> states; // The states the StatesManager is
+										// managing.
+	private int currentState; // The index position on the states arrayList.
+
+	/**
+	 * Constructs the StateManager that manages various States of the game.
+	 * 
+	 */
+	public StateManager() {
+		// Creates an arraylist for states.
+		this.states = new ArrayList<State>();
+
+		// Sets the currentState to the menuState.
+		this.currentState = this.MENUSTATE;
+
+		// Initialize a player object with null level.
+		this.player = new Digger(null);
+		this.enemy1 = new Hobbin(null, this.player);
+		this.enemy2 = new Nobbin(null, this.player);
+		this.enemy3 = new Nobbin(null, this.player);
+		this.enemy4 = new Nobbin(null, this.player);
+		this.enemy5 = new Nobbin(null, this.player);
+		this.enemy6 = new Nobbin(null, this.player);
+
+		// Populates the arraylist with the game's states.
+		this.states.add(new MenuState(this)); // index 0
+		this.states.add(new LevelState(this, this.LEVEL0));
+		this.states.add(new LevelState(this, this.LEVEL1));
+		this.states.add(new LevelState(this, this.LEVEL2));
+		this.states.add(new LevelState(this, this.LEVEL3));
+
+	}
+
+	/**
+	 * Gets the specified enemy indicated by the enemyNumber.
+	 *
+	 * @param enemyNumber the enemy to get.
+	 * @return the enemy requested.
+	 */
+	public Enemy getEnemy(int enemyNumber) {
+		if (enemyNumber == 1) {
+			return this.enemy1;
+		}
+		if (enemyNumber == 2) {
+			return this.enemy2;
+		}
+		if (enemyNumber == 3) {
+			return this.enemy3;
+		}
+		if (enemyNumber == 4) {
+			return this.enemy4;
+		}
+		if (enemyNumber == 5) {
+			return this.enemy5;
+		}
+		if (enemyNumber == 6) {
+			return this.enemy6;
+		}
+		return null;
+	}
+
+	/**
+	 * Updates the specified enemy's level data to the specified level.
+	 * 
+	 * @param enemy
+	 *            the enemy's level data to alter.
+	 * @param level
+	 *            the new level data.
+	 */
+	public void updateEnemyLevel(Enemy enemy, Level level) {
+		enemy.updateLevel(level);
+	}
+
+	/**
+	 * Gets the player object assigned to the StateManager.
+	 * 
+	 * @return the player object.
+	 */
+	public Digger getPlayer() {
+		return this.player;
+	}
+
+	/**
+	 * Transitions the currentState to the specified state.
+	 * 
+	 * @param state
+	 *            the newState index to move to.
+	 */
+	public void setState(int state) {
+		this.currentState = state;
+		this.states.get(this.currentState);
+	}
+
+	/**
+	 * Gets the level of the currentState.
+	 * 
+	 * @return the level of the currentState.
+	 */
+	public Level getLevel() {
+		return this.states.get(this.currentState).getLevel();
+	}
+
+	/**
+	 * Updates the currentState.
+	 * 
+	 */
+	public void update() {
+		this.states.get(this.currentState).update();
+	}
+
+	/**
+	 * Draws the currentState.
+	 * 
+	 * @param g2
+	 *            the Graphics2D object to draw on.
+	 */
+	public void draw(Graphics2D g2) {
+		this.states.get(this.currentState).draw(g2);
+	}
+
+	/**
+	 * Gets the states arraylist size.
+	 * 
+	 * @return the states arraylist size.
+	 */
+	public int getStatesSize() {
+		return this.states.size();
+	}
+
+	/**
+	 * Passes KeyEvents (in int code form) to the currentState.
+	 * 
+	 * @param key
+	 *            the int form of a key.
+	 */
+	public void keyPressed(int key) {
+		this.states.get(this.currentState).keyPressed(key);
+	}
+
+	/**
+	 * Passes KeyEvents (in int code form) to the currentState.
+	 * 
+	 * @param key
+	 *            the int form of a key.
+	 */
+	public void keyReleased(int key) {
+		this.states.get(this.currentState).keyReleased(key);
+	}
+
+}

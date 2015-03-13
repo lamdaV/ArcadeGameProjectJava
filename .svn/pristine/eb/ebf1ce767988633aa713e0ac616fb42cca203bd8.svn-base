@@ -1,0 +1,273 @@
+package objects;
+
+import java.awt.Graphics2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+
+import javax.imageio.ImageIO;
+
+import state.StateManager;
+
+/**
+ * Gold can be pushed horizontally, fall, kill people, and break up (if fallen
+ * more than 1 tile) and be picked up as points.
+ * 
+ * @author laeschjs. Created Feb 13, 2015.
+ */
+public class Gold {
+	// Tile ID
+	private final int DIRT = 0;
+	private final int BARRIER = 1;
+	private final int CLEAR = 2;
+	private final int GOLD = 4;
+	private final int TREASURE = 20;
+
+	// Constants.
+	private final int SCALE = 32; // The size of a tile in pixels.
+
+	// Variables
+	private int tilePositionX; // Gold tile position in the X plane.
+	private int tilePositionY; // Gold tile position in the Y plane.
+	private BufferedImage sprite; // Gold player image.
+	private Level level; // the current map.
+	private StateManager manager; // The manager.
+
+	private Rectangle2D.Double collisionBox;
+
+	public Gold(Level level, int tilePositionX, int tilePositionY) {
+		this.level = level;
+		this.tilePositionX = tilePositionX;
+		this.tilePositionY = tilePositionY;
+		this.collisionBox = new Rectangle2D.Double(this.tilePositionX
+				* this.SCALE, this.tilePositionY * this.SCALE, this.SCALE,
+				this.SCALE);
+		try {
+			this.sprite = ImageIO.read(new File("res/chest.png"));
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Error: File not found");
+		}
+	}
+
+	/**
+	 * Constructs the Gold object.
+	 * 
+	 * @param The
+	 *            StateManager 
+	 */
+//	public Gold(StateManager man) {
+//		
+//		this.level = null;
+//		this.manager = man;
+//	}
+
+	/**
+	 * Draws the Gold boxes on the screen.
+	 * 
+	 * @param Graphics
+	 *            object.
+	 */
+	public void draw(Graphics2D g2) {
+//		int[][] map = this.level.getMap();
+//		for (int r = 0; r < map.length; r++) {
+//			for (int c = 0; c < map[r].length; c++) {
+//				int currentPosition = map[r][c];
+//				if (currentPosition == 4) {
+//					this.tilePositionX = r;
+//					this.tilePositionY = c;
+//
+//				}
+//			}
+//		}
+		
+		g2.translate(this.tilePositionX * this.SCALE, this.tilePositionY
+				* this.SCALE);
+		g2.drawImage(this.sprite, 0, 0, null);
+		g2.translate(-this.tilePositionX * this.SCALE, -this.tilePositionY
+				* this.SCALE);
+		
+		this.collisionBox.setRect(this.tilePositionX * this.SCALE, this.tilePositionY * this.SCALE, this.SCALE, this.SCALE);
+		
+		checkBelow();
+	}
+	
+	public void checkBelow() {
+		int[][] map = this.level.getMap();
+		
+		System.out.println(this.tilePositionY + 1);
+		
+		if (map[this.tilePositionX][this.tilePositionY + 1] == this.level.CLEAR) {
+			this.tilePositionY++;
+		}	
+	}
+	
+	public void move(String direction) {
+		// Initialize moveDirections as 0.
+		int moveDirectionX = 0;
+		int moveDirectionY = 0;
+		
+		System.out.println(direction);
+
+		// Get proper moveDirection values.
+		if (direction.equals("left")) {
+			moveDirectionX = -1;
+		}
+		if (direction.equals("right")) {
+			moveDirectionX = 1;
+		}
+//		if (direction.equals("up")) {
+//			moveDirectionY = -1;
+//		}
+//		if (direction.equals("down")) {
+//			moveDirectionY = 1;
+//		}
+		
+		this.tilePositionX = this.tilePositionX + moveDirectionX;
+		this.tilePositionY = this.tilePositionY + moveDirectionY;
+		
+		if (this.tilePositionX == 0) {
+			this.tilePositionX = 1;
+		} 
+		if (this.tilePositionX == 19) {
+			this.tilePositionX = 18;
+		} 
+		
+		if (this.tilePositionY == 0) {
+			this.tilePositionY = 1;
+		}
+		if (this.tilePositionY == 19) {
+			this.tilePositionY = 18;
+		}
+
+	}
+
+	/**
+	 * Moves the Gold block the specified direction.
+	 * 
+	 * @param direction
+	 *            for gold to move.
+	 * @param the
+	 *            x coordinate of the gold.
+	 * @param the
+	 *            y coordinate of the gold.
+	 */
+	public void move(String direction, int x, int y) {
+		if (direction.equals("left")) {
+			if (this.level.getType(x - 1, y) == this.GOLD) {
+				this.level.updateTile(x - 2, y, this.GOLD);
+				this.level.updateTile(x - 1, y, this.GOLD);
+				this.level.updateTile(x, y, this.CLEAR);
+				if (this.level.getType(x - 1, y + 1) == this.CLEAR) {
+					fall(x - 1, y);
+				}
+			} else {
+				this.level.updateTile(x - 1, y, this.GOLD);
+				this.level.updateTile(x, y, this.CLEAR);
+				if (this.level.getType(x - 1, y + 1) == this.CLEAR) {
+					fall(x - 1, y);
+				}
+			}
+		}
+		if (direction.equals("right")) {
+			if (this.level.getType(x + 1, y) == this.BARRIER) {
+				return;
+			} else if (this.level.getType(x + 1, y) == this.GOLD) {
+				this.level.updateTile(x + 2, y, this.GOLD);
+				this.level.updateTile(x + 1, y, this.GOLD);
+				this.level.updateTile(x, y, this.CLEAR);
+				if (this.level.getType(x + 1, y + 1) == this.CLEAR) {
+					fall(x + 1, y);
+				}
+			} else {
+				this.level.updateTile(x + 1, y, this.GOLD);
+				this.level.updateTile(x, y, this.CLEAR);
+				if (this.level.getType(x + 1, y + 1) == this.CLEAR) {
+					fall(x + 1, y);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Makes the gold block fall and break if fallen more than 2 blocks.
+	 * 
+	 * @param the
+	 *            x coordinate of the gold.
+	 * @param the
+	 *            y coordinate of the gold.
+	 */
+	public void fall(int x, int y) {
+		ArrayList<Enemy> enemies = this.manager.getEnemies();
+		try {
+			// Graphics g = getGraphics();
+			// Graphics2D g2 = (Graphics2D) g;
+			TimeUnit.MILLISECONDS.sleep(500);
+			int counter = 0;
+			while (true) {
+				TimeUnit.MILLISECONDS.sleep(100);
+				if (this.manager.getPlayer().getPositionX() == x
+						&& this.manager.getPlayer().getPositionY() == y) {
+					this.manager.getPlayer().die();
+				}
+				for (Enemy enemy : enemies) {
+					if (enemy.getTileCoordinate().getX() == x
+							&& enemy.getTileCoordinate().getY() == y) {
+						enemy.die();
+					}
+				}
+				if (this.level.getType(x, y + 1) == this.DIRT
+						|| this.level.getType(x, y + 1) == this.BARRIER) {
+					if (counter > 1) {
+						this.level.updateTile(x, y, this.TREASURE);
+					}
+					break;
+				}
+				this.level.updateTile(x, y + 1, this.GOLD);
+				this.level.updateTile(x, y, this.CLEAR);
+				y = y + 1;
+				counter++;
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Checks the type of tile at specified coordinates
+	 * 
+	 * @param x
+	 *            coordinate
+	 * @param y
+	 *            coordinate
+	 * @return the tileID
+	 */
+	public int check(int x, int y) {
+		if (this.level.getType(x, y) == this.BARRIER) {
+			return this.BARRIER;
+		}
+		if (this.level.getType(x, y) == this.BARRIER) {
+			return this.BARRIER;
+		}
+		if (this.level.getType(x, y + 1) == this.CLEAR) {
+			return this.CLEAR;
+		}
+		// To satisfy the necessary return statement
+		return -1;
+	}
+
+	public Rectangle2D.Double getCollisionBox() {
+		return this.collisionBox;
+	}
+
+	/**
+	 * Updates the level for the Gold class.
+	 * 
+	 * @param lev
+	 */
+	public void updateLevel(Level lev) {
+		this.level = lev;
+	}
+}

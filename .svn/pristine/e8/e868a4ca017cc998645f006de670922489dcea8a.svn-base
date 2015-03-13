@@ -1,0 +1,136 @@
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+
+import com.sun.glass.events.KeyEvent;
+
+public class MenuState extends State {
+	private final int PLAY = 0;
+	private final int HIGHSCORES = 1;
+	private final int QUIT = 2;
+	private final int LEVEL_0 = 1;
+
+	private String[] options = { "Play", "Highscores", "Quit" };
+	private int currentChoice = 0;
+	private Background background;
+	private Color titleColor;
+	private Font titleFont;
+	private Font normalFont;
+
+	/**
+	 * Constructs a Main menu.
+	 * 
+	 * @param stateManager
+	 *            the StateManager that manages the various states.
+	 */
+	public MenuState(StateManager stateManager) {
+		this.stateManager = stateManager;
+
+		try {
+			this.background = new Background("res/menuBackground.gif", 1);
+			this.background.setVector(-0.1, 0);
+
+			// Title
+			this.titleColor = Color.CYAN;
+			this.titleFont = new Font("Times New Romans", Font.PLAIN, 72);
+
+			// Font
+			this.normalFont = new Font("Arial", Font.PLAIN, 32);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void initialize() {
+		// Not used for Background.
+	}
+
+	@Override
+	public void update() {
+		this.background.update();
+	}
+
+	@Override
+	public void draw(Graphics2D g2) {
+		// Background
+		this.background.draw(g2);
+
+		// Title
+		g2.setColor(this.titleColor);
+		g2.setFont(this.titleFont);
+		g2.drawString("Digger", 200, 150);
+
+		// Options
+		g2.setFont(this.normalFont);
+
+		// Set color of options and selected option.
+		for (int i = 0; i < this.options.length; i++) {
+			// Sets selected option color.
+			if (i == this.currentChoice) {
+				g2.setColor(Color.MAGENTA);
+			} else {
+				g2.setColor(Color.YELLOW);
+			}
+			// Draws the options in optimal positions 35 pixels apart starting
+			// at (200, 180)
+			g2.drawString(this.options[i], 200, 180 + i * 35);
+		}
+	}
+
+	private void select() {
+		int selection = this.currentChoice % this.options.length;
+
+		// If play, play game, highscores, see high scores, quit, quit game.
+		if (selection == this.PLAY) {
+			// Sets the level to 0, the first level.
+			this.stateManager.setState(this.LEVEL_0);
+			
+			// Gets the level.
+			Level level = this.stateManager.getLevel();
+			
+			// Update player level.
+			this.stateManager.player.updateLevel(level);
+			
+			// Update the enemies level.
+			this.stateManager.updateEnemyLevel(this.stateManager.getEnemy(1), level);
+			this.stateManager.updateEnemyLevel(this.stateManager.getEnemy(2), level);
+			this.stateManager.updateEnemyLevel(this.stateManager.getEnemy(3), level);
+			this.stateManager.updateEnemyLevel(this.stateManager.getEnemy(4), level);
+			this.stateManager.updateEnemyLevel(this.stateManager.getEnemy(5), level);
+			this.stateManager.updateEnemyLevel(this.stateManager.getEnemy(6), level);
+
+		} else if (selection == this.HIGHSCORES) {
+			// TODO: add code
+		} else if (selection == this.QUIT) {
+			System.exit(0);
+		}
+	}
+
+	@Override
+	public void keyPressed(int key) {
+		if (key == KeyEvent.VK_ENTER) {
+			select();
+		}
+		if (key == KeyEvent.VK_DOWN) {
+			this.currentChoice = Math.floorMod(this.currentChoice + 1,
+					this.options.length);
+		}
+		if (key == KeyEvent.VK_UP) {
+			this.currentChoice = Math.floorMod(this.currentChoice - 1,
+					this.options.length);
+		}
+	}
+
+	@Override
+	public void keyReleased(int key) {
+		// Not used in MenuState.
+	}
+
+	@Override
+	public Level getLevel() {
+		return super.getLevel();
+	}
+
+}

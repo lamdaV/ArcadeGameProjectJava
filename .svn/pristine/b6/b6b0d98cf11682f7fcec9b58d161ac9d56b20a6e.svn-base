@@ -1,0 +1,183 @@
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
+
+import javax.swing.JPanel;
+
+
+public class GamePanel extends JPanel implements Runnable, KeyListener {
+	
+	// Constants
+	private final int WIDTH = 640; // Pixel size of panel.
+	private final int HEIGHT = 640; // Pixel size of panel.
+	private final int TILE_NUMBER = 20; // Number of tiles. (20 x 20 tile map)
+	
+	// Variables
+	private Thread thread; // Main thread.
+	private boolean isRunning; // If the game is running.
+	
+	private BufferedImage image; // The main image.
+	private Graphics2D g2; // The main Graphics2D.
+	
+	// Wait time calculations.
+	private int FPS = 30; 
+	private long targetTime = 1000 / this.FPS; 
+	
+	// Stores level and player. 
+	private Level level;
+	private Digger player;
+	private int counter;
+	private int runCounter;
+//	private KeyBoardListener controlInputListener;
+	
+	/**
+	 * Constructs a GamePanel object, a Jpanel, with specific size preference
+	 *
+	 */
+	public GamePanel() {
+		super();
+		setPreferredSize(new Dimension(this.WIDTH, this.HEIGHT));
+		setFocusable(true);
+//		requestFocus();
+		
+		// Undeclared at construction;
+		this.thread = null;
+		this.isRunning = false;
+		this.image = null;
+		this.g2 = null;
+		this.level = null;
+		this.player = null;
+		this.counter = 1;
+		this.runCounter = 0;
+	}
+	
+	@Override
+	public void addNotify() {
+		super.addNotify();
+		if (this.thread == null) {
+			this.thread = new Thread(this);
+			addKeyListener(this);
+			this.thread.start();
+		}
+	}
+	
+	@Override
+	public void run() {
+		initialize();
+		
+		long startTime;
+		long timeSince;
+		long waitTime;
+		
+		// Main game loop.
+		while (true) {
+			if (!this.isRunning) {
+				break;
+			}
+			startTime = System.nanoTime();
+			
+			update();
+			render();
+			draw();
+			
+			if (this.level.getEmeraldCount() == 0) {
+				this.isRunning = false;
+			}
+			
+			timeSince = System.nanoTime() - startTime;
+			waitTime = this.targetTime - timeSince / 1000000;
+			
+			try {
+				Thread.sleep(Math.abs(waitTime));
+			} catch (Exception e) {
+				// Print error stack trace and end program.
+				e.printStackTrace();
+				System.exit(0);
+			}
+		}
+		run();
+			
+	}
+	
+	/**
+	 * TODO Put here a description of what this method does.
+	 *
+	 */
+	public void initialize() {
+		this.runCounter++;
+		this.isRunning = true;		
+		
+		this.image = new BufferedImage(this.WIDTH, this.HEIGHT, BufferedImage.TYPE_INT_RGB);
+		this.g2 = (Graphics2D) this.image.getGraphics();
+		
+		this.level = new Level("res/Level " + this.runCounter + ".txt", 32);
+		this.player = new Digger(this);
+	}
+
+	private void update() {
+		this.level.update();
+	} 
+	
+	private void render() {
+		this.level.draw(this.g2);
+		this.player.draw(this.g2);
+	}
+	
+	private void draw() {
+		Graphics g = getGraphics();
+		g.drawImage(this.image, 0, 0, null);
+		g.dispose();
+	}
+	
+	public Level getLevel() {
+		return this.level;
+	}
+
+	public void changeLevel(int count) {
+		this.level = new Level("res/Level " + count + ".txt", 32);
+	}
+
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+			this.player.move("left");
+		}
+		if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+			this.player.move("right");
+		}
+		if (e.getKeyCode() == KeyEvent.VK_UP) {
+			this.player.move("up");
+		}
+		if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+			this.player.move("down");
+		}
+		if (e.getKeyCode() == KeyEvent.VK_D) {
+			this.counter--;
+			this.changeLevel(this.counter);
+			
+		} 
+		if (e.getKeyCode() == KeyEvent.VK_U) {
+			this.counter++;
+			this.changeLevel(this.counter);
+		}
+		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+			// add code for player to shoot/attack.
+		}
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub.
+		
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub.
+		
+	}
+}

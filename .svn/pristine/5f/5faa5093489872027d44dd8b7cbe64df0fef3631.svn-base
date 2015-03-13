@@ -1,0 +1,106 @@
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+
+import javax.swing.JPanel;
+
+
+public class GamePanel extends JPanel implements Runnable {
+	
+	private final int WIDTH = 1000; 
+	private final int HEIGHT = 1000;
+	private final int TILE_NUMBER = 20;
+	
+	private Thread thread;
+	private boolean isRunning;
+	
+	private BufferedImage image;
+	private Graphics2D g2;
+	
+	private int FPS = 30;
+	private int targetTime = 1000 / this.FPS;
+	
+	private Level level;
+	
+	/**
+	 * TODO Put here a description of what this constructor does.
+	 *
+	 */
+	public GamePanel() {
+		super();
+		setPreferredSize(new Dimension(this.WIDTH, this.HEIGHT));
+		setFocusable(true);
+		requestFocus();
+		
+		// Undeclared at construction;
+		this.thread = null;
+		this.isRunning = false;
+		this.image = null;
+		this.g2 = null;
+		this.level = null;
+	}
+	
+	@Override
+	public void addNotify() {
+		super.addNotify();
+		if (this.thread == null) {
+			this.thread = new Thread(this);
+			this.thread.start();
+		}
+	}
+	
+	@Override
+	public void run() {
+		initialize();
+		
+		long startTime;
+		long urdTime;
+		long waitTime;
+		
+		while (true) {
+			if (!this.isRunning) {
+				break;
+			}
+			startTime = System.nanoTime();
+			
+			update();
+			render();
+			draw();
+			
+			urdTime = (System.nanoTime() - startTime) / 1000000;
+			waitTime = this.targetTime - urdTime;
+			
+			try {
+				Thread.sleep(waitTime);
+			} catch (Exception e) {
+				
+			}
+		}
+			
+	}
+	
+	public void initialize() {
+		this.isRunning = true;
+		
+		this.image = new BufferedImage(this.WIDTH, this.HEIGHT, BufferedImage.TYPE_INT_RGB);
+		this.g2 = (Graphics2D) this.image.getGraphics();
+		
+		this.level = new Level("res/Level 1.txt", this.WIDTH / this.TILE_NUMBER);
+	}
+	
+	private void update() {
+		this.level.update();
+	} 
+	
+	private void render() {
+		this.level.draw(this.g2);
+	}
+	
+	private void draw() {
+		Graphics g = getGraphics();
+		g.drawImage(this.image, 0, 0, null);
+		g.dispose();
+	}
+
+}

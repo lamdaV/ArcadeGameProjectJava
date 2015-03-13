@@ -1,0 +1,409 @@
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+
+import javax.imageio.ImageIO;
+
+/**
+ * A Runnable object that represents a basic enemy in the Digger game.
+ * 
+ * @author lamd. Created Feb 8, 2015.
+ */
+public class Nobbin implements Runnable {
+	private final int STARTING_X = 18; // The enemy's starting X position.
+	private final int STARTING_Y = 18; // The enemy's starting Y position.
+	private final int SCALE = 32; // The enemy's pixel scale.
+
+	private int tilePositionX; // The enemy's current tile position in the X
+								// direction.
+	private int tilePositionY; // The enemy's current tile position in the Y
+								// direction.
+	private int playerPositionX; // The player's current tile position in the X
+									// direction.
+	private int playerPositionY; // The player's current tile position in the Y
+									// direction.
+
+	private BufferedImage sprite; // The enemy's image.
+	private Level level; // The level the enemy is on.
+	private Digger player; // The target player to follow.
+	private int angularPosition; // Questionable use. The angular position to
+									// set the enemy at.
+	private int[][] map; // The map data from the enemy level.
+	private Node[][] nodeMap; // A node version of the map.
+
+	private Node nodeCurrent; // The current Node the enemy is on.
+	private Node nodeLeft; // The Node left of the current.
+	private Node nodeRight; // The Node right of the current.
+	private Node nodeUp; // The Node above the current.
+	private Node nodeDown; // The Node below the current.
+	private Node nodeDestination; // The player's node.
+
+	private ArrayList<Node> open; // The arraylist of Nodes to check.
+	private ArrayList<Node> close; // The arraylist of Nodes already checked.
+	private ArrayList<Coordinate> path; // A coordinate arraylist of the path to
+										// go.
+	private int oldPlayerPositionX; // The player's oldPosition in the X
+									// direction.
+	private int oldPlayerPositionY; // The player's oldPosition in the Y
+									// direction.
+	private boolean pauseStatus;
+
+	/**
+	 * Constructs a a Nobbin with a specified level and target player.
+	 * 
+	 * @param level
+	 *            the specified level.
+	 * @param player
+	 *            the target player.
+	 */
+	public Nobbin(Level level, Digger player) {
+		try {
+			this.sprite = ImageIO.read(new File("res/nobbin.png"));
+		} catch (IOException e) {
+			System.out.println("Error: File not found.");
+			e.printStackTrace();
+			System.exit(0);
+		}
+
+		this.pauseStatus = false;
+
+		// Obtains the player, the tracking object.
+		this.player = player;
+
+		// List of Nodes that needs to be checked or has been checked.
+		this.open = new ArrayList<Node>();
+		this.close = new ArrayList<Node>();
+
+		// Initial conditions of the enemy.
+		this.angularPosition = 0;
+		this.tilePositionX = this.STARTING_X;
+		this.tilePositionY = this.STARTING_Y;
+		this.nodeCurrent = new Node(new Coordinate(this.tilePositionX,
+				this.tilePositionY), 0, 0, 0);
+
+		// Initially null.
+		this.nodeLeft = null;
+		this.nodeRight = null;
+		this.nodeUp = null;
+		this.nodeRight = null;
+
+		// Set in another code. -1 is a temp value.
+		this.map = null;
+		this.playerPositionX = -1;
+		this.playerPositionY = -1;
+		this.oldPlayerPositionX = -1;
+		this.oldPlayerPositionY = -1;
+		this.path = new ArrayList<Coordinate>();
+	}
+
+	/**
+	 * Draws the enemy as it moves on a specified Graphics2D object.
+	 * 
+	 * @param g2
+	 *            the specified Graphics2D object to be drawn on.
+	 */
+	public void draw(Graphics2D g2) {
+		// Draw the enemy.
+		g2.translate(this.tilePositionX * this.SCALE, this.tilePositionY
+				* this.SCALE);
+		g2.rotate(this.angularPosition);
+
+		g2.drawImage(this.sprite, 0, 0, null);
+
+		g2.rotate(-this.angularPosition);
+		g2.translate(-this.tilePositionX * this.SCALE, -this.tilePositionY
+				* this.SCALE);
+	}
+
+	public void update() {
+		// run();
+	}
+
+	/**
+	 * Calculate the using the Manhattan Distance.
+	 * 
+	 */
+	public void calculateHeuristic() {
+		// logging
+		System.out.println("run");
+
+		this.map = this.level.getMap(); // Gets the map data as it is modified
+										// by the player.
+		this.nodeMap = new Node[this.map.length][this.map[0].length]; // 0 is an
+																		// arbitrary
+																		// row
+																		// to
+																		// get
+																		// column
+																		// length.
+
+		// If the playerPositions are unset, do not set the oldPositions.
+		if (!(this.playerPositionX == -1 && this.playerPositionY == -1)) {
+			this.oldPlayerPositionX = this.playerPositionX;
+			this.oldPlayerPositionY = this.playerPositionY;
+			// System.exit(0);
+		}
+
+		// Obtains the player's position.
+		this.playerPositionX = (int) this.player.getPositionX();
+		this.playerPositionY = (int) this.player.getPositionY();
+
+		// Creates the destination node based on player.
+		this.nodeDestination = new Node(new Coordinate(this.playerPositionX,
+				this.playerPositionY), 0, -1, -1);
+
+		// Variable
+		Node rcNode;
+
+		// Loop through the map and calculate the Heuristic values and generate
+		// a node for the corresponding nodeMap.
+		for (int r = 0; r < this.map.length; r++) {
+			for (int c = 0; c < this.map[r].length; c++) {
+				Coordinate rcCoordinate = new Coordinate(r, c);
+				int heuristic = Math.abs(this.tilePositionX
+						- this.playerPositionX)
+						+ Math.abs(this.tilePositionY - this.playerPositionY);
+				rcNode = new Node(rcCoordinate, heuristic, -1, -1); // -1 means
+																	// cost and
+																	// moveCost
+																	// are
+																	// unset.
+				this.nodeMap[r][c] = rcNode;
+			}
+		}
+	}
+
+	/**
+	 * Calculates the cost and moveCost of each tile.
+	 * 
+	 */
+	public void calculateCost() {
+		// Constants.
+		final int COST = 10;
+		final int CLEAR = this.level.CLEAR;
+
+		// Obtains the current cost of the current Node and its X and Y
+		// coordinates.
+		int currentCost = this.nodeCurrent.getCost();
+		int currentPositionX = this.nodeCurrent.getCoordinate().getX();
+		int currentPositionY = this.nodeCurrent.getCoordinate().getY();
+
+		// Obtains the tile ID on the map.
+		int mapLeft = this.map[currentPositionX - 1][currentPositionY];
+		int mapRight = this.map[currentPositionX + 1][currentPositionY];
+		int mapUp = this.map[currentPositionX][currentPositionY - 1];
+		int mapDown = this.map[currentPositionX][currentPositionY + 1];
+
+		// Optains the Node data on the nodeMap.
+		this.nodeLeft = this.nodeMap[currentPositionX - 1][currentPositionY];
+		this.nodeRight = this.nodeMap[currentPositionX + 1][currentPositionY];
+		this.nodeUp = this.nodeMap[currentPositionX][currentPositionY - 1];
+		this.nodeDown = this.nodeMap[currentPositionX][currentPositionY + 1];
+
+		// Checks that the map is CLEAR and is not already on the checked Node
+		// list.
+		// If not, set the cost data of the node and add it to the open list.
+		if (mapLeft == CLEAR && !this.close.contains(this.nodeLeft)) {
+			if (this.nodeLeft.getNext() == null) {
+				this.nodeLeft.setNext(this.nodeCurrent);
+				this.nodeLeft.setCost(currentCost + COST);
+				this.nodeLeft.setMoveCost(this.nodeLeft.getCost()
+						+ this.nodeLeft.getHeuristic());
+				this.open.add(this.nodeLeft);
+			}
+		}
+		if (mapRight == CLEAR && !this.close.contains(this.nodeRight)) {
+			if (this.nodeRight.getNext() == null) {
+				this.nodeRight.setNext(this.nodeCurrent);
+				this.nodeRight.setCost(currentCost + COST);
+				this.nodeRight.setMoveCost(this.nodeRight.getCost()
+						+ this.nodeRight.getHeuristic());
+				this.open.add(this.nodeRight);
+			}
+		}
+		if (mapUp == CLEAR && !this.close.contains(this.nodeUp)) {
+			if (this.nodeUp.getNext() == null) {
+				this.nodeUp.setNext(this.nodeCurrent);
+				this.nodeUp.setCost(currentCost + COST);
+				this.nodeUp.setMoveCost(this.nodeUp.getCost()
+						+ this.nodeUp.getHeuristic());
+				this.open.add(this.nodeUp);
+			}
+		}
+		if (mapDown == CLEAR && !this.close.contains(this.nodeDown)) {
+			if (this.nodeDown.getNext() == null) {
+				this.nodeDown.setNext(this.nodeCurrent);
+				this.nodeDown.setCost(currentCost + COST);
+				this.nodeDown.setMoveCost(this.nodeDown.getCost()
+						+ this.nodeDown.getHeuristic());
+				this.open.add(this.nodeDown);
+			}
+		}
+
+		// Double checks if the the current Node is in the close list before
+		// adding it.
+		if (!this.close.contains(this.nodeCurrent)) {
+			this.close.add(this.nodeCurrent);
+		}
+	}
+
+	/**
+	 * Calculates the shortest path to the player using A* path finding
+	 * algorithm
+	 * 
+	 */
+	public void calculateShortest() {
+		calculateHeuristic();
+
+		// If the player did not move, do not calculate and use current path
+		// data. 
+		// Note: For some reason, if the player does not initially move, the
+		// boolean comparison returns true when it is supposed to return false
+		// on its first run.
+		if (this.oldPlayerPositionX == this.playerPositionX
+				&& this.oldPlayerPositionY == this.playerPositionY) {
+			return;
+		}
+		while (true) {
+			calculateCost();
+
+			int lowestMoveCost = Integer.MAX_VALUE;
+			Node evaluate;
+			int evaluateMoveCost;
+
+			for (int i = 0; i < this.open.size(); i++) {
+				evaluate = this.open.get(i);
+				if (this.close.contains(evaluate)) {
+					continue;
+				}
+				evaluateMoveCost = evaluate.getMoveCost();
+				if (evaluateMoveCost == -1) {
+					continue;
+				}
+				if (evaluateMoveCost < lowestMoveCost) {
+					lowestMoveCost = evaluateMoveCost;
+					this.nodeCurrent = evaluate;
+				}
+			}
+			this.open.remove(this.nodeCurrent);
+
+			// logging
+			System.out.println("Destination: "
+					+ this.nodeDestination.toString());
+			System.out.println("Current: " + this.nodeCurrent.toString());
+			System.out.println(this.open.toString());
+			System.out.println(this.close.toString());
+
+			if (this.nodeCurrent.getCoordinate().equals(
+					this.nodeDestination.getCoordinate())) {
+				System.out.println("found");
+				this.open.clear();
+				this.close.clear();
+				setPath();
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Sets the path to the player.
+	 * 
+	 */
+	public void setPath() {
+		Node current = this.nodeCurrent;
+		if (this.path.size() != 0) {
+			this.path.clear();
+		}
+		while (true) {
+			if (current.getNext() == null) {
+				break;
+			}
+
+			this.path.add(current.getCoordinate());
+			current = current.getNext();
+		}
+	}
+
+	/**
+	 * Moves the player to a position on the set Path.
+	 * 
+	 */
+	public void move() {
+		if (this.path.size() == 0) {
+			return;
+		}
+
+		// Last position is the closest coordinate to the player.
+		Coordinate moveTo = this.path.get(this.path.size() - 1);
+		this.path.remove(this.path.size() - 1);
+
+		// Alter the enemy's tile position.
+		this.tilePositionX = moveTo.getX();
+		this.tilePositionY = moveTo.getY();
+	}
+
+	/**
+	 * Updates the Nobbin's level data to the specified level.
+	 * 
+	 * @param level
+	 *            the specified level to change to.
+	 */
+	public void updateLevel(Level level) {
+		this.level = level;
+		calculateHeuristic();
+	}
+
+	/**
+	 * Sets the pauseStatus to the opposite boolean value it is currently.
+	 * 
+	 */
+	public void setPause() {
+		this.pauseStatus = !this.pauseStatus;
+	}
+
+	/**
+	 * Gets the pauseStatus.
+	 * 
+	 * @return the pauseStatus.
+	 */
+	public boolean getPause() {
+		return this.pauseStatus;
+	}
+
+	@Override
+	public void run() {
+		while (true) {
+			System.out.println("calculating");
+			if (this.pauseStatus) {
+				try {
+					Thread.sleep(1000);
+					continue;
+				} catch (InterruptedException exception) {
+					exception.printStackTrace();
+					System.exit(0);
+				}
+			}
+			calculateShortest();
+			move();
+			this.nodeCurrent = this.nodeMap[this.tilePositionX][this.tilePositionY];
+			try {
+				Thread.sleep(400);
+			} catch (InterruptedException exception) {
+				exception.printStackTrace();
+				System.exit(0);
+			}
+		}
+	}
+
+	/**
+	 * Resets the position of the Nobbin to its starting position.
+	 *
+	 */
+	public void resetPosition() {
+		this.tilePositionX = this.STARTING_X;
+		this.tilePositionY = this.STARTING_Y;
+	}
+
+}

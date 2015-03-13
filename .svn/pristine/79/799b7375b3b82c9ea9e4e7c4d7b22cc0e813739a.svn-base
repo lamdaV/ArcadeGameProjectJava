@@ -1,0 +1,90 @@
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+
+import javax.imageio.ImageIO;
+
+
+/**
+ * TODO Put here a description of what this class does.
+ *
+ * @author lamd.
+ *         Created Feb 10, 2015.
+ */
+public class Hobbin extends Enemy{
+	/**
+	 * TODO Put here a description of what this constructor does.
+	 *
+	 * @param level
+	 * @param player
+	 */
+	public Hobbin(Level level, Digger player) {
+		super(level, player);
+		try {
+			this.sprite = ImageIO.read(new File("res/hobbin.png"));
+		} catch (IOException e) {
+			System.out.println("Error: File not found.");
+			e.printStackTrace();
+			System.exit(0);
+		}
+	}
+	
+	@Override
+	public void calculateShortest(Node nodeCurrent) {
+		final int BARRIER = this.level.BARRIER;
+
+		// Obtains the current Node and its X and Y coordinates.
+		int currentPositionX = nodeCurrent.getCoordinate().getX();
+		int currentPositionY = nodeCurrent.getCoordinate().getY();
+
+		// Obtains the tile ID on the map.
+		int mapLeft = this.map[currentPositionX - 1][currentPositionY];
+		int mapRight = this.map[currentPositionX + 1][currentPositionY];
+		int mapUp = this.map[currentPositionX][currentPositionY - 1];
+		int mapDown = this.map[currentPositionX][currentPositionY + 1];
+
+		// Optains the Node data on the nodeMap.
+		Node nodeLeft = this.nodeMap[currentPositionX - 1][currentPositionY];
+		Node nodeRight = this.nodeMap[currentPositionX + 1][currentPositionY];
+		Node nodeUp = this.nodeMap[currentPositionX][currentPositionY - 1];
+		Node nodeDown = this.nodeMap[currentPositionX][currentPositionY + 1];
+		
+		ArrayList<Node> checkList = new ArrayList<Node>();
+		int lowestHeuristicValue = Integer.MAX_VALUE;
+		if (mapLeft != BARRIER) {
+			checkList.add(nodeLeft);
+		}
+		if (mapRight != BARRIER) {
+			checkList.add(nodeRight);
+		}
+		if (mapUp != BARRIER) {
+			checkList.add(nodeUp);
+
+		}
+		if (mapDown != BARRIER) {
+			checkList.add(nodeDown);
+		}
+		
+		for (int i = 0; i < checkList.size(); i++) {
+			if (checkList.get(i).getHeuristic() < lowestHeuristicValue) {
+				lowestHeuristicValue = checkList.get(i).getHeuristic();
+				nodeCurrent = checkList.get(i);
+			}
+		}
+		setPath(nodeCurrent);
+	}
+	
+	@Override
+	public void setPath(Node nodeCurrent) {
+		this.path.add(nodeCurrent.getCoordinate());
+	}
+	
+	@Override
+	public void move() {
+		super.move();
+		final int CLEAR = this.level.CLEAR;
+		if (this.map[this.tilePositionX][this.tilePositionY] != CLEAR) {
+			this.level.updateTile(this.tilePositionX, this.tilePositionY, CLEAR);
+		}
+	}
+}

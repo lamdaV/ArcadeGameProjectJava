@@ -1,0 +1,234 @@
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
+
+import javax.swing.JPanel;
+
+public class GamePanel extends JPanel implements Runnable, KeyListener {
+
+	// Constants
+	private final int WIDTH = 640; // Pixel size of panel.
+	private final int HEIGHT = 640; // Pixel size of panel.
+	private final int TILE_NUMBER = 20; // Number of tiles. (20 x 20 tile map)
+	private final int NUMBER_OF_LEVELS = 4; // Number of levels.
+
+	// Variables
+	private Thread thread; // Main thread.
+	private boolean isRunning; // If the game is running.
+
+	private BufferedImage image; // The main image.
+	private Graphics2D g2; // The main Graphics2D.
+
+	// Wait time calculations.
+	private int FPS = 30;
+	private long targetTime = 1000 / this.FPS;
+
+	// Stores level and player.
+	private Level level; // The current level.
+	private Digger player; // The player.
+	private int stageCounter; // The stageCounter used for level skipping.
+	private int runCounter; // The amount of times initialize() has been called.
+
+	// Not used currently
+	// private KeyBoardListener controlInputListener;
+
+	/**
+	 * Constructs a GamePanel object, a Jpanel, with specific size preference
+	 * 
+	 */
+	public GamePanel() {
+		super();
+		setPreferredSize(new Dimension(this.WIDTH, this.HEIGHT));
+		setFocusable(true);
+		requestFocus();
+		this.stageCounter = 0;
+		this.runCounter = 0;
+
+		// Undeclared at construction;
+		this.thread = null;
+		this.isRunning = false;
+		this.image = null;
+		this.g2 = null;
+		this.level = null;
+		this.player = null;
+	}
+
+	@Override
+	public void addNotify() {
+		super.addNotify();
+		if (this.thread == null) {
+			this.thread = new Thread(this);
+			addKeyListener(this);
+			this.thread.start();
+		}
+	}
+
+	@Override
+	public void run() {
+		initialize();
+
+		long startTime;
+		long timeSince;
+		long waitTime;
+
+		// Main game loop.
+		while (true) {
+			if (!this.isRunning) {
+				break;
+			}
+			startTime = System.nanoTime();
+
+			update();
+			render();
+			draw();
+
+			// If level is completed, end game loop...
+			if (this.level.getEmeraldCount() == 0) {
+				this.isRunning = false;
+			}
+
+			timeSince = System.nanoTime() - startTime;
+			waitTime = this.targetTime - timeSince / 1000000;
+
+			try {
+				Thread.sleep(Math.abs(waitTime));
+			} catch (Exception e) {
+				// Print error stack trace and end program.
+				e.printStackTrace();
+				System.exit(0);
+			}
+		}
+		// ...and recursively call itself.
+		run();
+
+	}
+
+	/**
+	 * Sets undeclared variables.
+	 * 
+	 */
+	public void initialize() {
+		if (this.runCounter > this.NUMBER_OF_LEVELS) {
+			// TODO: add code to transition to a victory screen or something.
+			// Must create a class similar to levels.
+			// this.victory = new Victory()...
+			return;
+		}
+
+		// Set isRunning to true;
+		this.isRunning = true;
+
+		// Generate a new BufferImage and Graphics2D for use.
+		this.image = new BufferedImage(this.WIDTH, this.HEIGHT,
+				BufferedImage.TYPE_INT_RGB);
+		this.g2 = (Graphics2D) this.image.getGraphics();
+
+		// Create a level,
+		this.level = new Level("res/Level " + this.runCounter + ".txt", 32);
+
+		// If initialize() has been run before, reset the player's position and
+		// update the player's level file. Else, create the player.
+		if (this.runCounter > 0) {
+			this.player.resetPlayerPosition();
+			this.player.updateLevel(this.level);
+		} else {
+			this.player = new Digger(this.level);
+		}
+
+		// Increment the run counter when method is called.
+		this.runCounter++;
+	}
+
+	private void update() {
+		this.level.update();
+	}
+
+	private void render() {
+		this.level.draw(this.g2);
+		this.player.draw(this.g2);
+	}
+
+	private void draw() {
+		Graphics g = getGraphics();
+		g.drawImage(this.image, 0, 0, null);
+		g.dispose();
+	}
+
+	/**
+	 * Gets the level the GamePanel is using.
+	 * 
+	 * @return the level the GamePanel is using.
+	 */
+	public Level getLevel() {
+		return this.level;
+	}
+
+	/**
+	 * Changes the level. Mainly used when keys "u" or "d" are pressed to skip
+	 * levels. Also wraps levels.
+	 * 
+	 */
+	public void changeLevel() {
+		// Keeps track of current level.
+		int levelNumber = Math.floorMod(this.stageCounter,
+				this.NUMBER_OF_LEVELS);
+
+		try {
+			this.level = new Level("res/Level " + levelNumber + ".txt", 32);
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Error: File Not Found");
+			System.exit(0);
+		}
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		// Player movement.
+		if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+			this.player.move("left");
+		}
+		if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+			this.player.move("right");
+		}
+		if (e.getKeyCode() == KeyEvent.VK_UP) {
+			this.player.move("up");
+		}
+		if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+			this.player.move("down");
+		}
+
+		// Skipping levels.
+		if (e.getKeyCode() == KeyEvent.VK_D) {
+			this.stageCounter--;
+			this.changeLevel();
+			this.player.resetPlayerPosition();
+			this.player.updateLevel(this.level);
+		}
+		if (e.getKeyCode() == KeyEvent.VK_U) {
+			this.stageCounter++;
+			this.changeLevel();
+			this.player.resetPlayerPosition();
+			this.player.updateLevel(this.level);
+		}
+
+		if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+			// add code for player to shoot/attack.
+		}
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub.
+
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub.
+
+	}
+}

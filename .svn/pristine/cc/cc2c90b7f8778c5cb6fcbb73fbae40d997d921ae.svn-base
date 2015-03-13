@@ -1,0 +1,276 @@
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+
+import javax.imageio.ImageIO;
+
+public class Level {
+	// Tile id constants (add more here)
+	public final int DIRT = 0;
+	public final int BARRIER = 1;
+	public final int CLEAR = 2;
+	private final int EMERALD = 3;
+	private final int TREASURE = 4;
+
+	private int mapWidth; // the map array width.
+	private int mapHeight; // the map array height.
+	private int[][] map; // the map array. (height, width)
+	private int tileSize; // the tileSize. Preferably 32.
+
+	/**
+	 * Constructs a Level object with given tileSize that searches for a
+	 * specific fileName
+	 * 
+	 * @param fileName
+	 *            the fileName to search for.
+	 * @param tileSize
+	 *            the pixel size of a tile. 32 is perferable.
+	 */
+	public Level(String fileName, int tileSize) {
+		this.tileSize = tileSize;
+		populateMap(fileName, tileSize);
+
+	}
+
+	/**
+	 * Initializes the Map 2D ArrayList.
+	 * 
+	 * @param fileName
+	 *            the fileName to search for.
+	 * @param tileSize
+	 *            the pixel size of a tile. 32 is perferable.
+	 */
+	public void populateMap(String fileName, int tileSize) {
+		try {
+			String parser = " ";
+			String currentLine = null;
+			String[] currentLineValues = null;
+			FileReader fileInput = new FileReader(fileName);
+			BufferedReader imageReader = new BufferedReader(fileInput);
+			this.mapWidth = Integer.parseInt(imageReader.readLine());
+			this.mapHeight = Integer.parseInt(imageReader.readLine());
+
+			this.map = new int[this.mapHeight][this.mapWidth];
+
+			for (int r = 0; r < this.map.length; r++) {
+				// Get line of numbers and spaces.
+				currentLine = imageReader.readLine();
+
+				// Eliminates currentLine's space and obtain a array of String
+				// integers.
+				currentLineValues = currentLine.split(parser);
+
+				for (int c = 0; c < this.map[r].length; c++) {
+					// Convert the String integers into integer values to be
+					// stored in level.
+					this.map[c][r] = Integer.parseInt(currentLineValues[c]);
+				}
+			}
+			imageReader.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(0);
+		} 
+	}
+
+	/**
+	 * Currently does nothing.
+	 * 
+	 */
+	public void update() {
+		// TODO: either add code useful or delete.
+	}
+
+	/**
+	 * Assigns the proper images to the tiles.
+	 * 
+	 * @param g2
+	 *            the Graphics2D of where the object is painted.
+	 */
+	public void draw(Graphics2D g2) {
+		int currentPosition;
+
+		for (int r = 0; r < this.map.length; r++) {
+			for (int c = 0; c < this.map[r].length; c++) {
+				currentPosition = this.map[r][c];
+				BufferedImage image = null;
+
+				if (currentPosition == this.DIRT) {
+					try {
+						image = ImageIO.read(new File("res/dirt.png"));
+						g2.drawImage(image, r * this.tileSize, c
+								* this.tileSize, null);
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("Error: File not found");
+					}
+				} else if (currentPosition == this.BARRIER) {
+					try {
+						image = ImageIO.read(new File("res/barrier.png"));
+						g2.drawImage(image, r * this.tileSize, c
+								* this.tileSize, null);
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("Error: File not found");
+					}
+				} else if (currentPosition == this.CLEAR) {
+					try {
+						image = ImageIO.read(new File("res/clear.png"));
+						g2.drawImage(image, r * this.tileSize, c
+								* this.tileSize, null);
+						continue;
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("Error: File not found");
+					}
+				} else if (currentPosition == this.EMERALD) {
+					try {
+						image = ImageIO.read(new File("res/emeraldOre.png"));
+						g2.drawImage(image, r * this.tileSize, c
+								* this.tileSize, null);
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("Error: File not found");
+					}
+				} else if (currentPosition == this.TREASURE) {
+					try {
+						image = ImageIO.read(new File("res/chest.png"));
+						g2.drawImage(image, r * this.tileSize, c
+								* this.tileSize, null);
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.out.println("Error: File not found");
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Gets the Level's array.
+	 * 
+	 * @return the Level's array.
+	 */
+	public int[][] getMap() {
+		return this.map;
+	}
+
+	/**
+	 * Updates the tile at the specified x and y coordinates with the specified
+	 * tileID.
+	 * 
+	 * @param x
+	 *            the x coordinate to update.
+	 * @param y
+	 *            the y coordinate to update.
+	 * @param tileID
+	 *            the tileID number to update to.
+	 */
+	public void updateTile(int x, int y, int tileID) {
+		this.map[x][y] = tileID;
+	}
+
+	/**
+	 * Gets the number of emeralds on the Level.
+	 * 
+	 * Consider moving this to an emerald class for cohesion; however, if
+	 * emerald doesn't do anything, leave as its.
+	 * 
+	 * @return the number of emerald tiles on the map
+	 */
+	public int getEmeraldCount() {
+		int counter = 0;
+		for (int r = 0; r < this.map.length; r++) {
+			for (int c = 0; c < this.map[r].length; c++) {
+				if (this.map[r][c] == this.EMERALD) {
+					counter++;
+				}
+			}
+		}
+		return counter;
+	}
+
+	public int getTileSize() {
+		return this.tileSize;
+	}
+	
+	public int getMapWidth() {
+		return this.mapWidth;
+	}
+	
+	public int getMapHeight() {
+		return this.mapHeight;
+	}
+
+	public int getType(int checkTileX, int checkTileY) {
+		return this.map[checkTileX][checkTileY];
+	}
+	
+	
+
+	// Old
+	// code.-------------------------------------------------------------------------------
+	// /**
+	// * TODO Put here a description of what this method does.
+	// *
+	// */
+	// public void populateLevel() {
+	// File level = null;
+	//
+	// if (this.counter == 0) {
+	// level = new File("res/Level 1.txt");
+	// } else if (this.counter == 1) {
+	// level = new File("res/Level 2.txt");
+	// } else {
+	// level = new File("res/Level 3.txt");
+	// }
+	//
+	// Scanner input = null;
+	//
+	// try {
+	// input = new Scanner(level);
+	//
+	// for (int r = 0; r < this.WIDTH; r++) {
+	// for (int c = 0; c < this.HEIGHT; c++) {
+	// if (!input.hasNextInt()) {
+	// break;
+	// }
+	// this.level[r][c] = input.nextInt();
+	// }
+	// }
+	// } catch (FileNotFoundException e) {
+	// System.out.println("File " + level.getAbsolutePath()
+	// + " could not be found.");
+	// } catch (IOException ioe) {
+	// ioe.printStackTrace();
+	// } finally {
+	// input.close();
+	// this.counter++;
+	// }
+	// // System.out.println(Arrays.deepToString(this.level));
+	// }
+
+	// @Override
+	// protected void paintComponent(Graphics g) {
+	// Graphics2D g2 = (Graphics2D) g;
+	//
+	// for (int r = 0; r < this.level.length; r++) {
+	// for (int c = 0; c < this.level[r].length; c++) {
+	// if (this.level[r][c] == this.DIRT) {
+	// g2.setColor(Color.GREEN);
+	// } else if (this.level[r][c] == this.BARRIER) {
+	// g2.setColor(Color.BLUE);
+	// } else if (this.level[r][c] == this.CLEAR) {
+	// g2.setColor(Color.BLACK);
+	// }
+	// g2.fillRect(r * this.TILE_SIZE, c * this.TILE_SIZE,
+	// this.TILE_SIZE, this.TILE_SIZE);
+	// g2.drawRect(r * this.TILE_SIZE, c * this.TILE_SIZE,
+	// this.TILE_SIZE, this.TILE_SIZE);
+	// }
+	//
+	// }
+	// }
+}

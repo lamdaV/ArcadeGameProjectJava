@@ -1,0 +1,519 @@
+package state;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.util.ArrayList;
+import java.util.Random;
+
+import main.GamePanel;
+import objects.Bullet;
+import objects.Digger;
+import objects.Enemy;
+import objects.Gold;
+import objects.Hobbin;
+import objects.Level;
+import objects.Nobbin;
+import toolObjects.MusicPlayer;
+
+import com.sun.glass.events.KeyEvent;
+
+/**
+ * LevelState manages the level and player interation for a specified
+ * StateManager.
+ * 
+ * @author lamd. Created Feb 6, 2015.
+ */
+public class LevelState extends State {
+	private final int targetWaitTime = 20; // The amount of times update must
+											// be called for 3 seconds to pass.
+
+	protected Level level; // The map the LevelState is representing.
+	private Digger player; // The player the LevelState is tracking.
+	private int levelNumber; // The level file indictor.
+	private int nextLevelIndex; // The level to progress to.
+	private int levelLimit; // The limit of the states arraylist of the
+							// stateManager.
+	private boolean isShooting; // The boolean value indicating to shoot a Bullet.
+	private Bullet bullet; // The passed Bullet object.
+	private int enemyWaitTime; // Delay Enemy spawn rate.
+	private int bulletCharge; // Delay rapid bullet fire.
+	
+	// Passed Enemies.
+	private Enemy enemy1;
+	private Enemy enemy2;
+	private Enemy enemy3;
+	private Enemy enemy4;
+	private Enemy enemy5;
+	private Enemy enemy6;
+	
+	private MusicPlayer backgroundMusic;
+
+	/**
+	 * Constructs a LevelState which manages the player's position and
+	 * interation with the level.
+	 * 
+	 * @param stateManager
+	 *            the stateManager managing this state.
+	 * @param levelNumber
+	 *            used to access the correct level file.
+	 */
+	public LevelState(StateManager stateManager, int levelNumber) {
+		// Sets the stateManger and levelNumber.
+		this.stateManager = stateManager;
+		this.levelNumber = levelNumber;
+		this.levelLimit = this.stateManager.getStatesSize();
+		
+		// Gets bullet and initialize boolean.
+		this.bullet = this.stateManager.getBullet();
+		this.isShooting = false;
+		this.bulletCharge = 20;
+		
+		// Set enemyWaitTime to 0;
+		this.enemyWaitTime = 0;
+		
+		this.backgroundMusic = new MusicPlayer("/Music/levelMusic.mp3");
+		this.backgroundMusic.playLoop();
+		
+		// Initialize the variable.
+		initialize();
+	}
+
+	@Override
+	public void initialize() {
+		// Gets the passed player and enemy objects.
+		this.player = this.stateManager.getPlayer();
+		this.enemy1 = this.stateManager.getEnemy(1);
+		this.enemy2 = this.stateManager.getEnemy(2);
+		this.enemy3 = this.stateManager.getEnemy(3);
+		this.enemy4 = this.stateManager.getEnemy(4);
+		this.enemy5 = this.stateManager.getEnemy(5);
+		this.enemy6 = this.stateManager.getEnemy(6);
+		
+		// Get the correct file String for level.
+		String fileName = "res/Level " + this.levelNumber + ".txt";
+		System.out.println(fileName);
+		
+		// Set level.
+		this.level = new Level(fileName, 32);
+	}
+
+	@Override
+	public Level getLevel() {
+		return this.level;
+	}
+
+	@Override
+	public void draw(Graphics2D g2) {
+		// Clears the frame.
+		g2.setColor(Color.WHITE);
+		g2.fillRect(0, 0, GamePanel.WIDTH, GamePanel.HEIGHT);
+
+		// Draws the level.
+		this.level.draw(g2);
+
+		// Draws the player.
+		this.player.incrementDelayCounter();
+		this.player.draw(g2);
+		
+		// Draws Gold.
+		ArrayList<Gold> goldObjects = this.level.getGoldObjects();
+		for (int i = 0; i < goldObjects.size(); i++) {
+			goldObjects.get(i).draw(g2);
+		}
+		
+		// Draws bullet if space is clicked.
+		if (this.isShooting) {
+			MusicPlayer bulletSFX = new MusicPlayer("/Music/bulletFX.mp3");
+			bulletSFX.play();
+			this.stateManager.getBullet().draw(g2);
+			if (this.stateManager.getBullet().getHasCollided()) {
+				bulletSFX.close();
+				this.bullet.setIsFieldSet(false);
+				this.isShooting = false;
+			}
+		}
+		
+		
+		// If bulletCharge is not full, charge it by increments of 1.
+		if (this.bulletCharge < 20) {
+			this.bulletCharge++;
+		}
+
+		// Draws the enemies.
+		if (this.enemy1.getLevel() != null) {
+			this.enemy1.incrementDelayCounter();
+			this.enemy1.draw(g2);
+		}
+		if (this.enemy2.getLevel() != null) {
+			this.enemy2.incrementDelayCounter();
+			this.enemy2.draw(g2);
+		}
+		if (this.enemy3.getLevel() != null) {
+			this.enemy3.incrementDelayCounter();
+			this.enemy3.draw(g2);
+		}
+		if (this.enemy4.getLevel() != null) {
+			this.enemy4.incrementDelayCounter();
+			this.enemy4.draw(g2);
+		}
+		if (this.enemy5.getLevel() != null) {
+			this.enemy5.incrementDelayCounter();
+			this.enemy5.draw(g2);
+		}
+		if (this.enemy6.getLevel() != null) {
+			this.enemy6.incrementDelayCounter();
+			this.enemy6.draw(g2);
+		}
+	}
+
+	@Override
+	public void update() {
+		// Constants.
+		final int MENU_STATE = 0;
+		
+		// Instatiate the variables.
+		Random generator = new Random();
+		int tileID = 0;
+		String currentScoreString;
+		int currentLife;
+
+		// Enemies spawn criteria.
+		if (this.enemy1.getLevel() == null && generator.nextInt(100) % 10 == 0
+				&& this.enemyWaitTime >= this.targetWaitTime) {
+			this.enemy1.setLevel(this.level);
+		}
+		if (this.enemy2.getLevel() == null && this.levelNumber >= 0
+				&& generator.nextInt(101) % 20 == 0
+				&& this.enemyWaitTime >= 2 * this.targetWaitTime) {
+			this.enemy2.setLevel(this.level);
+		}
+		if (this.enemy3.getLevel() == null && this.levelNumber >= 0
+				&& generator.nextInt(101) % 30 == 0
+				&& this.enemyWaitTime >= 3 * this.targetWaitTime) {
+			this.enemy3.setLevel(this.level);
+		}
+		if (this.enemy4.getLevel() == null && this.levelNumber >= 1
+				&& generator.nextInt(101) % 40 == 0
+				&& this.enemyWaitTime >= 4 * this.targetWaitTime) {
+			this.enemy4.setLevel(this.level);
+		}
+		if (this.enemy5.getLevel() == null && this.levelNumber >= 2
+				&& generator.nextInt(101) % 50 == 0
+				&& this.enemyWaitTime >= 5 * this.targetWaitTime) {
+			this.enemy5.setLevel(this.level);
+		}
+		if (this.enemy6.getLevel() == null && this.levelNumber >= 3
+				&& generator.nextInt(101) % 60 == 0
+				&& this.enemyWaitTime >= 6 * this.targetWaitTime) {
+			this.enemy6.setLevel(this.level);
+		}
+
+		this.enemyWaitTime++;
+
+		// Random Enemy Transformation.
+		if (this.enemy1.getLevel() != null && generator.nextInt(50) == 1) {
+			if (this.enemy1 instanceof Nobbin) {
+				this.stateManager.reassignEnemy(1, new Hobbin(this.level,
+						this.player, this.enemy1.getTileCoordinate()));
+			} else {
+				this.stateManager.reassignEnemy(1, new Nobbin(this.level,
+						this.player, this.enemy1.getTileCoordinate()));
+			}
+			this.enemy1 = this.stateManager.getEnemy(1);
+		}
+		if (this.enemy2.getLevel() != null && generator.nextInt(100) == 1) {
+			if (this.enemy2 instanceof Nobbin) {
+				this.stateManager.reassignEnemy(2, new Hobbin(this.level,
+						this.player, this.enemy2.getTileCoordinate()));
+			} else {
+				this.stateManager.reassignEnemy(2, new Nobbin(this.level,
+						this.player, this.enemy2.getTileCoordinate()));
+			}
+			this.enemy2 = this.stateManager.getEnemy(2);
+		}
+		if (this.enemy3.getLevel() != null && generator.nextInt(150) == 1) {
+			if (this.enemy3 instanceof Nobbin) {
+				this.stateManager.reassignEnemy(3, new Hobbin(this.level,
+						this.player, this.enemy3.getTileCoordinate()));
+			} else {
+				this.stateManager.reassignEnemy(3, new Nobbin(this.level,
+						this.player, this.enemy3.getTileCoordinate()));
+			}
+			this.enemy3 = this.stateManager.getEnemy(3);
+		}
+		if (this.enemy4.getLevel() != null && generator.nextInt(200) == 1) {
+			if (this.enemy4 instanceof Nobbin) {
+				this.stateManager.reassignEnemy(4, new Hobbin(this.level,
+						this.player, this.enemy4.getTileCoordinate()));
+			} else {
+				this.stateManager.reassignEnemy(4, new Nobbin(this.level,
+						this.player, this.enemy4.getTileCoordinate()));
+			}
+			this.enemy4 = this.stateManager.getEnemy(4);
+		}
+		if (this.enemy5.getLevel() != null && generator.nextInt(250) == 1) {
+			if (this.enemy5 instanceof Nobbin) {
+				this.stateManager.reassignEnemy(5, new Hobbin(this.level,
+						this.player, this.enemy5.getTileCoordinate()));
+			} else {
+				this.stateManager.reassignEnemy(5, new Nobbin(this.level,
+						this.player, this.enemy5.getTileCoordinate()));
+			}
+			this.enemy5 = this.stateManager.getEnemy(5);
+		}
+		if (this.enemy6.getLevel() != null && generator.nextInt(300) == 1) {
+			if (this.enemy6 instanceof Nobbin) {
+				this.stateManager.reassignEnemy(6, new Hobbin(this.level,
+						this.player, this.enemy6.getTileCoordinate()));
+			} else {
+				this.stateManager.reassignEnemy(6, new Nobbin(this.level,
+						this.player, this.enemy6.getTileCoordinate()));
+			}
+			this.enemy6
+			= this.stateManager.getEnemy(6);
+		}
+
+		// Updates the visual life counter.
+		currentLife = this.player.getLife();
+
+		// TODO: transition to a HighScoreState instead.
+		// If the currentLife is 0, end the game and transition the player back
+		// to MenuState.
+		if (currentLife == 0) {
+			this.stateManager.setState(MENU_STATE);
+
+			this.enemy1.resetPosition();
+			this.enemy2.resetPosition();
+			this.enemy3.resetPosition();
+			this.enemy4.resetPosition();
+			this.enemy5.resetPosition();
+			this.enemy6.resetPosition();
+
+			this.stateManager.setEnemyLevel(1, null);
+			this.enemy1.setLevel(null);
+			this.enemy2.setLevel(null);
+			this.enemy3.setLevel(null);
+			this.enemy4.setLevel(null);
+			this.enemy5.setLevel(null);
+			this.enemy6.setLevel(null);
+
+			this.player.setLevel(null);
+			this.player.resetScore();
+
+			// Reinitialize the LevelState.
+			initialize();
+
+		}
+
+		tileID = this.level.convertToTileID(currentLife);
+		this.level.updateTile(5, 0, tileID);
+		
+		// Kills the player if a gold box hits it and resets the Enemies.
+		if(this.player.sameAsGold()) {
+			this.player.die();
+			
+			this.enemy1.resetPosition();
+			this.enemy2.resetPosition();
+			this.enemy3.resetPosition();
+			this.enemy4.resetPosition();
+			this.enemy5.resetPosition();
+			this.enemy6.resetPosition();
+		}
+		
+		// Kills the Enemy if a gold box hits it.
+		if(this.enemy1.sameAsGold()) {
+			this.enemy1.die();
+		}
+		if(this.enemy2.sameAsGold()) {
+			this.enemy2.die();
+		}
+		if(this.enemy3.sameAsGold()) {
+			this.enemy3.die();
+		}
+		if(this.enemy4.sameAsGold()) {
+			this.enemy4.die();
+		}
+		if(this.enemy5.sameAsGold()) {
+			this.enemy5.die();
+		}
+		if(this.enemy6.sameAsGold()) {
+			this.enemy6.die();
+		}
+
+		// Kills the player if enemy collides with player.
+		if (this.enemy1.collideWithPlayer() || this.enemy2.collideWithPlayer()
+				|| this.enemy3.collideWithPlayer()
+				|| this.enemy4.collideWithPlayer()
+				|| this.enemy5.collideWithPlayer()
+				|| this.enemy6.collideWithPlayer()) {
+
+			// Kills the player and resets position.
+			this.player.die();
+
+			// Resets the enemy's position
+			this.enemy1.resetPosition();
+			this.enemy2.resetPosition();
+			this.enemy3.resetPosition();
+			this.enemy4.resetPosition();
+			this.enemy5.resetPosition();
+			this.enemy6.resetPosition();
+
+			// Set Enemies Level to null to avoid overcrowding.
+			this.enemy1.setLevel(null);
+			this.enemy2.setLevel(null);
+			this.enemy3.setLevel(null);
+			this.enemy4.setLevel(null);
+			this.enemy5.setLevel(null);
+			this.enemy6.setLevel(null);
+		}
+
+		// Obtains a padded scoreString and converts it to an integer for
+		// evaluation.
+		currentScoreString = String.format("%05d", this.player.getScore());
+		int newScore = Integer.parseInt(currentScoreString);
+		int evaluate;
+
+		// Updates the visual score counter.
+		for (int i = 0; i < currentScoreString.length(); i++) {
+			int x = (this.level.getMap().length - 1) - i;
+			evaluate = newScore % 10;
+			tileID = this.level.convertToTileID(evaluate);
+			this.level.updateTile(x, 0, tileID);
+			newScore = newScore / 10;
+
+		}
+
+		// Check emerald on board. If empty (0), progress.
+		if (this.level.getEmeraldCount() == 0) {
+			progressForward();
+		}
+	}
+
+	/**
+	 * General code both progressFoward and progressBackward will run.
+	 * 
+	 */
+	public void generalProgression() {
+		// TODO: Note: Problematic as winning becomes impossible. Could use it for a
+		// survival mode?
+		// // Special Case: nextLevelIndex is at last level, wrap it to the
+		// first level.
+//		 if (this.nextLevelIndex >= this.levelLimit) {
+//			 this.nextLevelIndex = 1
+//		 }
+		
+		this.backgroundMusic.close();
+		 
+		 if (this.nextLevelIndex >= this.levelLimit) {
+			 this.nextLevelIndex = Math.floorMod(this.nextLevelIndex, this.levelLimit);
+		 }
+
+		// Set the currentState to a new level and reset the player's position.
+		this.stateManager.setState(this.nextLevelIndex);
+		this.player.resetPlayerPosition();
+		this.enemy1.resetPosition();
+		this.enemy2.resetPosition();
+		this.enemy3.resetPosition();
+		this.enemy4.resetPosition();
+		this.enemy5.resetPosition();
+		this.enemy6.resetPosition();
+
+		// Sets the player's level accordingly.
+		Level currentLevel = this.stateManager.getLevel();
+		this.player.setLevel(currentLevel);
+		
+		// Set Enemy's level to null.
+		this.enemy1.setLevel(null);
+		this.enemy2.setLevel(null);
+		this.enemy3.setLevel(null);
+		this.enemy4.setLevel(null);
+		this.enemy5.setLevel(null);
+		this.enemy6.setLevel(null);
+	}
+
+	/**
+	 * Moves the currentState to the nextLevel.
+	 * 
+	 */
+	protected void progressForward() {
+		// Updates nextLevelIndex. Adds 2 due to levelNumber starting at 0, but
+		// states Array starts level index at 1. Also, updates levelLimit if
+		// stateManager has updated its arraylist.
+		this.nextLevelIndex = this.levelNumber + 2;
+		generalProgression();
+
+	}
+
+	/**
+	 * Moves the currentState backwards.
+	 * 
+	 */
+	public void progressBackWard() {
+		// Wraps the nextLevelIndex if at level 0.
+		System.out.println(this.levelNumber);
+		if (this.levelNumber <= 0) {
+			this.nextLevelIndex = this.levelLimit - 1;
+		} else {
+			this.nextLevelIndex = this.levelNumber;
+		}
+		generalProgression();
+	}
+
+	@Override
+	public void keyPressed(int key) {
+		// Player Movement.
+		if (key == KeyEvent.VK_LEFT) {
+			this.player.move("left");
+		}
+		if (key == KeyEvent.VK_RIGHT) {
+			this.player.move("right");
+		}
+		if (key == KeyEvent.VK_UP) {
+			this.player.move("up");
+		}
+		if (key == KeyEvent.VK_DOWN) {
+			this.player.move("down");
+		}
+
+		// Level Skipping.
+		if (key == KeyEvent.VK_U) {
+			progressForward();
+		}
+		if (key == KeyEvent.VK_D) {
+			progressBackWard();
+		}
+
+		// Pause Enemies.
+		if (key == KeyEvent.VK_P) {
+			this.enemy1.setPause();
+			this.enemy2.setPause();
+			this.enemy3.setPause();
+			this.enemy4.setPause();
+			this.enemy5.setPause();
+			this.enemy6.setPause();
+		}
+
+		// Toggle GodMode.
+		if (key == KeyEvent.VK_G) {
+			this.player.toggleGodMode();
+		}
+
+		// Shooting Bullets.
+		if (key == KeyEvent.VK_SPACE) {
+			if (this.bulletCharge == 20) {
+				this.isShooting = true;
+				if (this.stateManager.bullet.getHasCollided()) {
+					this.stateManager.bullet.setHasCollided(false);
+				}
+				this.bulletCharge = 0;
+			}
+			
+		}
+	}
+
+	@Override
+	public void keyReleased(int key) {
+		// TODO: Nothing yet.
+
+	}
+}

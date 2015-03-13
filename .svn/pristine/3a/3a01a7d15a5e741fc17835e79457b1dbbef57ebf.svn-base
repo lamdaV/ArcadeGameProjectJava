@@ -1,0 +1,61 @@
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
+
+import javax.swing.JComponent;
+
+
+public class Digger extends JComponent{
+	private double positionX;
+	private double positionY;
+	private BufferedImage sprite;
+	private Level level;
+	private double angularPosition;
+	private double size;
+	
+	public Digger() {
+		this.positionX = 100;
+		this.positionY = 100;
+		this.size = 25;
+		this.angularPosition = 0;
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g) {
+		Graphics2D g2 = (Graphics2D) g;
+		
+		g2.translate(this.positionX, this.positionY);
+		g2.rotate(this.angularPosition);
+		
+		Ellipse2D.Double player = new Ellipse2D.Double(-this.size / 2, -this.size / 2,
+				this.size, this.size);
+		g2.setColor(Color.BLACK);
+		g2.fill(player);
+		
+		g2.rotate(-this.angularPosition);
+		g2.translate(-this.positionX, -this.positionY);
+		
+	}
+	
+	/**
+	 * Moves the player object accordingly.
+	 *
+	 * @param direction a string indicating direction.
+	 */
+	public void move(String direction) {
+		if (direction.equals("left")) {
+			this.positionX = this.positionX - this.size / 2;
+		}
+		if (direction.equals("right")) {
+			this.positionX = this.positionX + this.size / 2;
+		}
+		if (direction.equals("up")) {
+			this.positionY = this.positionY - this.size / 2;
+		}
+		if (direction.equals("down")) {
+			this.positionY = this.positionY + this.size / 2;
+		}
+	}
+}

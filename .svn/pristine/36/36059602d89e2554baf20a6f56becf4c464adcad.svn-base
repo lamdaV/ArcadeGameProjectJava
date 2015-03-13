@@ -1,0 +1,21 @@
+package state;
+
+public class Progress implements Runnable {
+	private LevelState levelState;
+	
+	public Progress(LevelState state) {
+		this.levelState = state;
+	}
+
+	@Override
+	public void run() {
+		while (true) {
+			if (this.levelState.level.getEmeraldCount() == 0) {
+				this.levelState.progressForward();
+				break;
+			} 
+			
+		}
+	}
+
+}

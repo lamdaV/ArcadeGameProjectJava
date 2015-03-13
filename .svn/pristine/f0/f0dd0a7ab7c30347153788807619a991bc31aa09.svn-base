@@ -1,0 +1,128 @@
+package state;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Collections;
+
+import toolObjects.Background;
+
+import com.sun.glass.events.KeyEvent;
+
+public class HighScoreState extends State{
+	
+	private Background background;
+	private Color titleColor;
+	private Font titleFont;
+	private Font normalFont;
+	private ArrayList<Integer> scores;
+	private ArrayList<Integer> topScores;
+	private int counter;
+	private final int MENUSTATE = 0;
+	
+	public HighScoreState(StateManager manager) {
+		// Initialize variables
+		this.stateManager = manager;
+		this.topScores = new ArrayList<Integer>();
+		this.counter = 1;
+		this.scores = new ArrayList<Integer>();
+		
+		// Setting other fields.
+		try {
+			this.background = new Background("res/menuBackground.gif", 1);
+			this.background.setVector(-0.1, 0);
+
+			// Title
+			this.titleColor = Color.CYAN;
+			this.titleFont = new Font("Times New Romans", Font.PLAIN, 72);
+
+			// Font
+			this.normalFont = new Font("Arial", Font.PLAIN, 38);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void draw(Graphics2D g2) {
+		// Background
+		this.background.draw(g2);
+		
+		// Title
+		g2.setColor(this.titleColor);
+		g2.setFont(this.titleFont);
+		g2.drawString("High Scores", 125, 100);
+		g2.drawString("__________", 125, 105);
+
+		// Options
+		g2.setFont(this.normalFont);
+		
+		// Set color of options and selected option.
+		for (int i = 0; i < this.topScores.size(); i++) {
+			// Sets selected option color.
+			
+			g2.setColor(Color.BLACK);
+			
+			// Draws the options in optimal positions 35 pixels apart starting
+			// at (200, 180)
+			String point = Integer.toString(this.topScores.get(i));
+			g2.drawString(point, 280, 180 + i * 40);
+		}
+		
+		g2.setColor(Color.MAGENTA);
+		g2.drawString("<  Back To Menu", 175, 600);
+	}
+	
+	@Override
+	public void initialize() {
+		try {
+			String parser = " ";
+			String[] currentLineValues = null;
+			
+			FileReader fileInput = new FileReader("res/highscores.txt");
+			BufferedReader imageReader = new BufferedReader(fileInput);
+			String currentLine = imageReader.readLine();
+
+			currentLineValues = currentLine.split(parser);
+			for(int i = 0; i < currentLineValues.length; i++) {
+				this.scores.add(Integer.parseInt(currentLineValues[i]));
+			}
+			
+			Collections.sort(this.scores);
+			
+			for(int i = this.scores.size() - 1; i > -1; i--) {
+				if(counter > 5) {
+					return;
+				}
+				this.topScores.add(this.scores.get(i));
+				System.out.println(this.scores.get(i));
+				counter++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void update() {
+		this.background.update();	
+	}
+
+	@Override
+	public void keyPressed(int key) {
+		if (key == KeyEvent.VK_ENTER) {
+			this.stateManager.setState(this.MENUSTATE);
+		}
+	}
+
+	@Override
+	public void keyReleased(int key) {
+		// TODO Auto-generated method stub.
+		
+	}
+
+}

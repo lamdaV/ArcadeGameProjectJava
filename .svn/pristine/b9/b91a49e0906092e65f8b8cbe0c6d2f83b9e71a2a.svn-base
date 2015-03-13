@@ -1,0 +1,168 @@
+import java.awt.Color;
+import java.awt.Graphics2D;
+
+import com.sun.glass.events.KeyEvent;
+
+/**
+ * LevelState manages the level and player interation for a specified StateManager.
+ *
+ * @author lamd.
+ *         Created Feb 6, 2015.
+ */
+public class LevelState extends State {
+	private Level level; // The map the LevelState is representing.
+	private Digger player; //  The player the LevelState is tracking.
+	private int levelNumber; // The level file indictor.
+	private int nextLevelIndex; // The level to progress to.
+	private int levelLimit; // The limit of the states arraylist of the stateManager.
+
+	/**
+	 * Constructs a LevelState which manages the player's position and interation with the level.
+	 *
+	 * @param stateManager the stateManager managing this state.
+	 * @param levelNumber used to access the correct level file.
+	 */
+	public LevelState(StateManager stateManager, int levelNumber) {
+		this.stateManager = stateManager;
+		this.player = this.stateManager.getPlayer();
+		this.levelNumber = levelNumber;
+		initialize();
+	}
+
+	@Override
+	public void initialize() {
+		String fileName = "res/Level " + this.levelNumber + ".txt";
+		System.out.println(fileName);
+		this.level = new Level(fileName, 32);
+	}
+
+	@Override
+	public Level getLevel() {
+		return this.level;
+	}
+
+	@Override
+	public void update() {
+		// Check emerald on board. If empty (0), progress.
+		if (this.level.getEmeraldCount() == 0) {
+			progressForward();
+		}
+	}
+
+	/**
+	 * Moves the currentState to the nextLevel.
+	 * 
+	 */
+	public void progressForward() {
+		// Updates nextLevelIndex. Adds 2 due to levelNumber starting at 0, but
+		// states Array starts level index at 1. Also, updates levelLimit if
+		// stateManager has updated its arraylist.
+		this.nextLevelIndex = this.levelNumber + 2;
+		this.levelLimit = this.stateManager.getStatesSize();
+
+		// Note: Problematic as winning becomes in possible. Could use it for a
+		// survival mode?
+		// // Special Case: nextLevelIndex is at last level, wrap it to the
+		// first level.
+		// if (this.nextLevelIndex >= this.levelLimit) {
+		// this.nextLevelIndex = 1;
+		// }
+
+		// Fixes the current level.
+		initialize();
+
+		// Set the currentState to a new level and reset the player's position.
+		this.stateManager.setState(Math.floorMod(this.nextLevelIndex,
+				this.levelLimit));
+		this.player.resetPlayerPosition();
+
+		// Sets the player's level accordingly. If the player reaches the
+		// menuState, set the player's level to null. Else, set it to the
+		// currentLevel.
+		if (Math.floorMod(this.nextLevelIndex, this.levelLimit) == 0) {
+			this.player.updateLevel(null);
+		} else {
+			Level currentLevel = this.stateManager.getLevel();
+			this.player.updateLevel(currentLevel);
+		}
+	}
+
+	/**
+	 * Moves the currentState backwards.
+	 * 
+	 */
+	public void progressBackWard() {
+		// Wraps the nextLevelIndex if at level 0.
+		if (this.levelNumber == 0) {
+			this.nextLevelIndex = this.levelLimit - 1;
+		} else {
+			this.nextLevelIndex = this.levelNumber;
+		}
+
+		// Updates the levelLimit if stateManager has updated its arrayList.
+		this.levelLimit = this.stateManager.getStatesSize();
+
+		// Fixes the current level.
+		initialize();
+
+		// Sets the currentState. Ensures that it does not go out of states
+		// arrayList bounds.
+		this.stateManager.setState(Math.floorMod(this.nextLevelIndex,
+				this.levelLimit));
+
+		// Resets the player's position.
+		this.player.resetPlayerPosition();
+
+		// If the player somehow makes it back to menu, set the player's level
+		// data to null. Else, set it to the currentLevel.
+		if (Math.floorMod(this.nextLevelIndex, this.levelLimit) == 0) {
+			this.player.updateLevel(null);
+		} else {
+			Level currentLevel = this.stateManager.getLevel();
+			this.player.updateLevel(currentLevel);
+		}
+	}
+
+	@Override
+	public void draw(Graphics2D g2) {
+		// Clears the frame.
+		g2.setColor(Color.WHITE);
+		g2.fillRect(0, 0, GamePanel.WIDTH, GamePanel.HEIGHT);
+
+		// Draws the level.
+		this.level.draw(g2);
+		this.stateManager.player.draw(g2);
+	}
+
+	@Override
+	public void keyPressed(int key) {
+		// Player Movement.
+		if (key == KeyEvent.VK_LEFT) {
+			this.player.move("left");
+		}
+		if (key == KeyEvent.VK_RIGHT) {
+			this.player.move("right");
+		}
+		if (key == KeyEvent.VK_UP) {
+			this.player.move("up");
+		}
+		if (key == KeyEvent.VK_DOWN) {
+			this.player.move("down");
+		}
+
+		// Level Skipping.
+		if (key == KeyEvent.VK_U) {
+			progressForward();
+		}
+		if (key == KeyEvent.VK_D) {
+			progressBackWard();
+		}
+	}
+
+	@Override
+	public void keyReleased(int key) {
+		// TODO: Nothing yet.
+
+	}
+
+}

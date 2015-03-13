@@ -1,0 +1,83 @@
+
+public class Node {
+	private Coordinate coordinate;
+	private int heuristic;
+	private int cost;
+	private int moveCost;
+	private Node next;
+	
+	public Node(Coordinate coordinate, int heuristic, int cost, int moveCost) {
+		this.coordinate = coordinate;
+		this.heuristic = heuristic;
+		this.cost = cost;
+		this.moveCost = moveCost;
+		this.next = null;
+	}
+	
+	public void setNext(Node next) {
+		this.next = next;
+	}
+	
+	public Node getNext() {
+		return this.next;
+	}
+	
+	public void setCoordinate(Coordinate coordinate) {
+		this.coordinate = coordinate;
+	}
+	
+	public Coordinate getCoordinate() {
+		return this.coordinate;
+	}
+	
+	public void setHeuristic(int heuristic) {
+		this.heuristic = heuristic;
+	}
+	
+	public int getHeuristic() {
+		return this.heuristic;
+	}
+	
+	public void setCost(int cost) {
+		this.cost = cost;
+	}
+	
+	public int getCost() {
+		return this.cost;
+	}
+	
+	public void setMoveCost(int moveCost) {
+		this.moveCost = moveCost;
+	}
+	
+	public int getMoveCost() {
+		return this.moveCost;
+	}
+	
+	@Override
+	public String toString() {
+		int x = this.coordinate.getX();
+		int y = this.coordinate.getY();
+		String coordinate = "[" + x + "][" + y +"]" ;
+		return coordinate;
+	}
+	
+	@Override
+	public boolean equals(Object check) {
+		if (check == null) return false;
+		if (check == this) return true;
+
+		if (!(check instanceof Node)) return false;
+
+			  // check relevant members
+	
+		int checkX = ((Node) check).getCoordinate().getX();
+		int checkY = ((Node) check).getCoordinate().getY();
+		int thisX = this.getCoordinate().getX();
+		int thisY = this.getCoordinate().getY();
+		if (thisX == checkX && thisY == checkY) { 
+			return true;
+		}
+		return false;
+	}
+}

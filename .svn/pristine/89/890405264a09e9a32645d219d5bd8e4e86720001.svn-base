@@ -1,0 +1,350 @@
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.util.Random;
+
+import com.sun.glass.events.KeyEvent;
+
+/**
+ * LevelState manages the level and player interation for a specified
+ * StateManager.
+ * 
+ * @author lamd. Created Feb 6, 2015.
+ */
+public class LevelState extends State {
+	private Level level; // The map the LevelState is representing.
+	private Digger player; // The player the LevelState is tracking.
+	private int levelNumber; // The level file indictor.
+	private int nextLevelIndex; // The level to progress to.
+	private int levelLimit; // The limit of the states arraylist of the
+							// stateManager.
+
+	private Enemy enemy1;
+	private Enemy enemy2;
+	private Enemy enemy3;
+	private Enemy enemy4;
+	private Enemy enemy5;
+	private Enemy enemy6;
+
+	private Thread enemyThread1;
+	private Thread enemyThread2;
+	private Thread enemyThread3;
+	private Thread enemyThread4;
+	private Thread enemyThread5;
+	private Thread enemyThread6;
+
+	/**
+	 * Constructs a LevelState which manages the player's position and
+	 * interation with the level.
+	 * 
+	 * @param stateManager
+	 *            the stateManager managing this state.
+	 * @param levelNumber
+	 *            used to access the correct level file.
+	 */
+	public LevelState(StateManager stateManager, int levelNumber) {
+		this.stateManager = stateManager;
+		this.player = this.stateManager.getPlayer();
+		this.enemy1 = this.stateManager.getEnemy(1);
+		this.enemy2 = this.stateManager.getEnemy(2);
+		this.enemy3 = this.stateManager.getEnemy(3);
+		this.enemy4 = this.stateManager.getEnemy(4);
+		this.enemy5 = this.stateManager.getEnemy(5);
+		this.enemy6 = this.stateManager.getEnemy(6);
+
+		this.levelNumber = levelNumber;
+
+		this.enemyThread1 = null;
+		this.enemyThread2 = null;
+		this.enemyThread3 = null;
+		this.enemyThread4 = null;
+		this.enemyThread5 = null;
+		this.enemyThread6 = null;
+
+		initialize();
+	}
+
+	@Override
+	public void initialize() {
+		String fileName = "res/Level " + this.levelNumber + ".txt";
+		System.out.println(fileName);
+		this.level = new Level(fileName, 32);
+	}
+
+	@Override
+	public Level getLevel() {
+		return this.level;
+	}
+
+	@Override
+	public void update() {
+		Random generator = new Random();
+		int tileID = 0;
+		String currentScoreString;
+		int currentLife;
+		
+		// Enemy Thread
+		if (this.enemyThread1 == null) {
+			this.enemyThread1 = new Thread(this.enemy1);
+			this.enemyThread1.start();
+		}
+		if (this.enemyThread2 == null && generator.nextInt(101) % 20 == 0) {
+			this.enemyThread2 = new Thread(this.enemy2);
+			this.enemyThread2.start();
+		}
+		if (this.enemyThread3 == null && generator.nextInt(101) % 30 == 0) {
+			this.enemyThread3 = new Thread(this.enemy3);
+			this.enemyThread3.start();
+		}
+		if (this.enemyThread4 == null && generator.nextInt(101) % 40 == 0 && this.levelNumber >= 1) {
+			this.enemyThread4 = new Thread(this.enemy4);
+			this.enemyThread4.start();
+		}
+		if (this.enemyThread5 == null && generator.nextInt(101) % 50 == 0 && this.levelNumber >= 2) {
+			this.enemyThread5 = new Thread(this.enemy5);
+			this.enemyThread5.start();
+		}
+		if (this.enemyThread6 == null && generator.nextInt(101) % 60 == 0 && this.levelNumber >= 3) {
+			this.enemyThread6 = new Thread(this.enemy6);
+			this.enemyThread6.start();
+		}
+		
+		currentLife = this.player.getLife();
+		tileID = this.level.convertToTileID(currentLife);
+		this.level.updateTile(5, 0, tileID);
+
+		// Kills the player if enemy collides with player.
+		if (this.enemy1.collideWithPlayer() || this.enemy2.collideWithPlayer()
+				|| this.enemy3.collideWithPlayer()
+				|| this.enemy4.collideWithPlayer()
+				|| this.enemy5.collideWithPlayer()
+				|| this.enemy6.collideWithPlayer()) {
+
+			// Kills the player and resets position.
+			this.player.die();
+			
+			
+			if (currentLife == 0) {
+				this.stateManager.setState(this.stateManager.MENUSTATE);
+				
+				this.player.updateLevel(null);
+				this.enemy1.updateLevel(null);
+				this.enemy2.updateLevel(null);
+				this.enemy3.updateLevel(null);
+				this.enemy4.updateLevel(null);
+				this.enemy5.updateLevel(null);
+				this.enemy6.updateLevel(null);
+			}
+									
+			// Resets the enemy's position
+			this.enemy1.resetPosition();
+			this.enemy2.resetPosition();
+			this.enemy3.resetPosition();
+			this.enemy4.resetPosition();
+			this.enemy5.resetPosition();
+			this.enemy6.resetPosition();
+		}
+		
+		currentScoreString = String.format("%05d", this.player.getScore());
+		int newScore = Integer.parseInt(currentScoreString);
+		int evaluate;
+		
+		for (int i = 0; i < currentScoreString.length(); i++) {
+			int x = 19 - i;
+			evaluate = newScore % 10;
+			tileID = this.level.convertToTileID(evaluate);
+			this.level.updateTile(x, 0, tileID);
+			newScore = newScore / 10;
+			
+		}
+		
+		
+		this.player.checkScore();
+
+		// Check emerald on board. If empty (0), progress.
+		if (this.level.getEmeraldCount() == 0) {
+			progressForward();
+		}
+	}
+
+	/**
+	 * Moves the currentState to the nextLevel.
+	 * 
+	 */
+	public void progressForward() {
+		// Updates nextLevelIndex. Adds 2 due to levelNumber starting at 0, but
+		// states Array starts level index at 1. Also, updates levelLimit if
+		// stateManager has updated its arraylist.
+		this.nextLevelIndex = this.levelNumber + 2;
+		this.levelLimit = this.stateManager.getStatesSize();
+
+		// Note: Problematic as winning becomes impossible. Could use it for a
+		// survival mode?
+		// // Special Case: nextLevelIndex is at last level, wrap it to the
+		// first level.
+		// if (this.nextLevelIndex >= this.levelLimit) {
+		// this.nextLevelIndex = 1;
+		// }
+
+		// Fixes the current level.
+		initialize();
+
+		// Set the currentState to a new level and reset the player's position.
+		this.stateManager.setState(Math.floorMod(this.nextLevelIndex,
+				this.levelLimit));
+		this.player.resetPlayerPosition();
+		this.enemy1.resetPosition();
+		this.enemy2.resetPosition();
+		this.enemy3.resetPosition();
+		this.enemy4.resetPosition();
+		this.enemy5.resetPosition();
+		this.enemy6.resetPosition();
+		
+		// Sets the player's level accordingly. If the player reaches the
+		// menuState, set the player's level to null. Else, set it to the
+		// currentLevel.
+		if (Math.floorMod(this.nextLevelIndex, this.levelLimit) == 0) {
+			this.player.updateLevel(null);
+			this.enemy1.updateLevel(null);
+			this.enemy2.updateLevel(null);
+			this.enemy3.updateLevel(null);
+			this.enemy4.updateLevel(null);
+			this.enemy5.updateLevel(null);
+			this.enemy6.updateLevel(null);
+		} else {
+			Level currentLevel = this.stateManager.getLevel();
+			this.player.updateLevel(currentLevel);
+			this.enemy1.updateLevel(currentLevel);
+			this.enemy2.updateLevel(currentLevel);
+			this.enemy3.updateLevel(currentLevel);
+			this.enemy4.updateLevel(currentLevel);
+			this.enemy5.updateLevel(currentLevel);
+			this.enemy6.updateLevel(currentLevel);
+		}
+
+	}
+
+	/**
+	 * Moves the currentState backwards.
+	 * 
+	 */
+	public void progressBackWard() {
+		// Wraps the nextLevelIndex if at level 0.
+		if (this.levelNumber == 0) {
+			this.nextLevelIndex = this.levelLimit - 1;
+		} else {
+			this.nextLevelIndex = this.levelNumber;
+		}
+
+		// Updates the levelLimit if stateManager has updated its arrayList.
+		this.levelLimit = this.stateManager.getStatesSize();
+
+		// Fixes the current level.
+		initialize();
+
+		// Sets the currentState. Ensures that it does not go out of states
+		// arrayList bounds.
+		this.stateManager.setState(Math.floorMod(this.nextLevelIndex,
+				this.levelLimit));
+
+		// Resets the player's position.
+		this.player.resetPlayerPosition();
+		this.enemy1.resetPosition();
+		this.enemy2.resetPosition();
+		this.enemy3.resetPosition();
+		this.enemy4.resetPosition();
+		this.enemy5.resetPosition();
+		this.enemy6.resetPosition();
+
+		// If the player somehow makes it back to menu, set the player's level
+		// data to null. Else, set it to the currentLevel.
+		if (Math.floorMod(this.nextLevelIndex, this.levelLimit) == 0) {
+			this.player.updateLevel(null);
+			this.enemy1.updateLevel(null);
+			this.enemy2.updateLevel(null);
+			this.enemy3.updateLevel(null);
+			this.enemy4.updateLevel(null);
+			this.enemy5.updateLevel(null);
+			this.enemy6.updateLevel(null);
+
+		} else {
+			Level currentLevel = this.stateManager.getLevel();
+			this.player.updateLevel(currentLevel);
+			
+			this.enemy1.updateLevel(currentLevel);
+			this.enemy2.updateLevel(currentLevel);
+			this.enemy3.updateLevel(currentLevel);
+			this.enemy4.updateLevel(currentLevel);
+			this.enemy5.updateLevel(currentLevel);
+			this.enemy6.updateLevel(currentLevel);
+
+		}
+	}
+
+	@Override
+	public void draw(Graphics2D g2) {
+		// Clears the frame.
+		g2.setColor(Color.WHITE);
+		g2.fillRect(0, 0, GamePanel.WIDTH, GamePanel.HEIGHT);
+
+		// Draws the level.
+		this.level.draw(g2);
+
+		// Draws the player.
+		this.stateManager.player.draw(g2);
+
+		// Draws the enemies.
+		this.enemy1.draw(g2);
+		
+		if (this.enemyThread2 != null) {
+			this.enemy2.draw(g2);
+		}
+		if (this.enemyThread3 != null) {
+			this.enemy3.draw(g2);
+		}
+		if (this.enemyThread4 != null) {
+			this.enemy4.draw(g2);
+		}
+		if (this.enemyThread5 != null) {
+			this.enemy5.draw(g2);
+		}
+		if (this.enemyThread6 != null) {
+			this.enemy6.draw(g2);
+		}
+	}
+
+	@Override
+	public void keyPressed(int key) {
+		// Player Movement.
+		if (key == KeyEvent.VK_LEFT) {
+			this.player.move("left");
+		}
+		if (key == KeyEvent.VK_RIGHT) {
+			this.player.move("right");
+		}
+		if (key == KeyEvent.VK_UP) {
+			this.player.move("up");
+		}
+		if (key == KeyEvent.VK_DOWN) {
+			this.player.move("down");
+		}
+
+		// Level Skipping.
+		if (key == KeyEvent.VK_U) {
+			progressForward();
+		}
+		if (key == KeyEvent.VK_D) {
+			progressBackWard();
+		}
+
+		if (key == KeyEvent.VK_P) {
+			this.enemy1.setPause();
+		}
+	}
+
+	@Override
+	public void keyReleased(int key) {
+		// TODO: Nothing yet.
+
+	}
+
+}

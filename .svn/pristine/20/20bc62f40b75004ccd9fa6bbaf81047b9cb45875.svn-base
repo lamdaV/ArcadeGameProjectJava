@@ -1,0 +1,150 @@
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+import javax.swing.JComponent;
+
+
+public class Digger extends JComponent{
+	// Tile ID
+	private final int DIRT = 0;
+	private final int BARRIER = 1;
+	private final int CLEAR = 2;
+	private final int EMERALD = 3;
+	
+	// Constants.
+	private final int STARTING_X = 3;
+	private final int STARTING_Y = 3;
+	private final int SCALE = 32;
+	
+	private double tilePositionX; // Digger's tile position in the X plane.
+	private double tilePositionY; // Digger's tile position in the Y plane.
+	private BufferedImage sprite; // Digger's player image
+	private Level level; // the current map
+	private GamePanel panel;
+	private int stageLevel;
+	private int score;
+	
+	// Questionable use
+	private String direction;
+	private double angularPosition;	
+	
+	public Digger(GamePanel panel) {
+		// location on 20 x 20 board.
+		// temp variables.
+		this.tilePositionX = this.STARTING_X;
+		this.tilePositionY = this.STARTING_Y;
+		
+		this.stageLevel = 1;
+		this.score = 0;
+		
+		this.panel = panel;
+		this.level = this.panel.getLevel();
+		
+		this.direction = null;
+		this.angularPosition = 0;
+		
+		try {
+			this.sprite = ImageIO.read(new File("res/digger.png"));
+		} catch (IOException e) {
+			System.out.println("Error: File not found.");
+			e.printStackTrace();
+			System.exit(0);
+		}
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g) {
+		Graphics2D g2 = (Graphics2D) g;
+		
+		g2.translate(this.tilePositionX * this.SCALE, this.tilePositionY * this.SCALE);
+		g2.rotate(this.angularPosition);
+		
+		g2.drawImage(this.sprite, 0, 0, null);
+		
+		g2.rotate(-this.angularPosition);
+		g2.translate(-this.tilePositionX * this.SCALE, -this.tilePositionY * this.SCALE);
+		
+	}
+	
+	/**
+	 * TODO Put here a description of what this method does.
+	 *
+	 * @param g2
+	 */
+	public void draw(Graphics2D g2) {
+		g2.translate(this.tilePositionX * this.SCALE, this.tilePositionY * this.SCALE);
+		g2.rotate(this.angularPosition);
+		
+		g2.drawImage(this.sprite, 0, 0, null);
+		
+		g2.rotate(-this.angularPosition);
+		g2.translate(-this.tilePositionX * this.SCALE, -this.tilePositionY * this.SCALE);
+	}
+	
+	/**
+	 * Moves the player object accordingly.
+	 *
+	 * @param direction a string indicating direction.
+	 */
+	public void move(String direction) {
+		int[][] map = this.level.getMap();
+		int roundedPositionX;
+		int roundedPositionY;
+		int currentPosition;
+		
+		
+		double oldX = this.tilePositionX;
+		double oldY = this.tilePositionY;
+		
+		if (direction.equals("left")) {
+			this.tilePositionX = this.tilePositionX - 0.25;
+			
+		}
+		if (direction.equals("right")) {
+			this.tilePositionX = this.tilePositionX + 0.25;
+		}
+		if (direction.equals("up")) {
+			this.tilePositionY = this.tilePositionY - 0.25;
+		}
+		if (direction.equals("down")) {
+			this.tilePositionY = this.tilePositionY + 0.25;
+		}
+		
+		roundedPositionX = (int) Math.round(this.tilePositionX);
+		roundedPositionY = (int) Math.round(this.tilePositionY);
+		currentPosition = map[roundedPositionX][roundedPositionY];
+		
+		// Attempt to re-adjust the player object when switching direction.
+//		if (this.direction != null) {
+//			if ((this.direction.equals("up") || this.direction.equals("down")) 
+//					&& (direction.equals("left") || direction.equals("right"))) {
+//				this.tilePositionY = roundedPositionY;
+//			} else {
+//				this.tilePositionX = roundedPositionX;
+//			}
+//		}
+		
+		if (currentPosition == this.DIRT) {
+			this.level.updateTile(roundedPositionX, roundedPositionY, this.CLEAR);
+		}
+		if (currentPosition == this.BARRIER) {
+			this.tilePositionX = oldX;
+			this.tilePositionY = oldY;
+		}
+		
+		if (currentPosition == this.EMERALD) {
+			this.level.updateTile(roundedPositionX, roundedPositionY, this.CLEAR);
+			this.score = this.score + 100;
+			if (this.level.getEmeraldCount() == 0) {
+				this.panel.changeLevel(this.stageLevel++);
+			}
+		}
+		
+		
+//		this.direction = direction;
+	}
+}
